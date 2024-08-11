@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OfferCat!</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/highlight.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/setting.css') }}">
+</head>
+<body>
+
+    <script src="{{ url_for('static', filename='js/asr/wss_config.js') }}"></script>
+    
+    <!-- 提示界面 -->
+    <div id="overlay"></div>
+    <div id="tooltip">
+        <br>
+        点击箭头或暗处可关闭提示
+        <br><br>
+        点击左下角的按钮开始录音
+        <br><br>
+        最上面的很多泡泡是语音识别的历史纪录，可以多选
+        <br><br>
+        下方固定位置的泡泡是最新识别出的话
+        <br><br>
+        选择泡泡后点击右下角的提问可向大模型提问
+        <br>
+        
+        <button id="tooltip-close">×</button>
+    </div>
+
+    <div id="upper-section">
+        <div id="bubbles-container"></div>
+        
+    </div>
+    <div id="buttons-container">
+        <div id="interviewer-quesiton"></div>
+    </div>
+
+    <div id="buttons-container">
+        <button id="settings-button"  class="settings-button">开始录音</button>
+        <button id="submit-button">提问</button>
+    </div>
+    
+    <div class="settings-container" id="settings-container">
+        <button class="close-button" id="close-settings-button">&times;</button>
+        <div class="recorder-container">
+            <div class="recorder-options">
+                <label><input name="recoder_mode" onclick="on_recoder_mode_change()" type="radio" value="mic" checked="true"/>麦克风</label>
+                <label><input name="recoder_mode" onclick="on_recoder_mode_change()" type="radio" value="file" />文件</label>
+            </div>
+            <div id="mic_mode_div" style="display:block;"></div>
+            <div id="rec_mode_div" style="display:none;">
+                <input type="file" id="upfile">
+            </div>
+        </div>
+        <div class="recorder-actions">
+            <button id="btnConnect">开始录音</button>
+            <!-- <button id="btnStart">开始录音</button> -->
+            <button id="btnStop">停止录音</button>
+        </div>
+        <div id="info_div"></div>
+    </div>
+
+    <div id="lower-section">
+        <div id="response-box">
+            <div id="close-button">&times;</div>
+            <div id="response-content"></div>
+        </div>
+    </div>
+
+    <div id="iphone-padding"></div>
+
+    
+    
+    <script src="{{ url_for('static', filename='js/asr/recorder-core.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/wav.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/pcm.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/asr/wsconnecter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/filemanager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/asr.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/asr_function.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/ui/iphone_padding.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/marked.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/highlight.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/setting.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/bubbles.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/llm.js') }}"></script>
+
+    <!-- <script>
+        simulateAPI();
+    </script> -->
+
+    <!-- <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+    <script>
+    var vConsole = new window.VConsole();
+    </script> -->
+</body>
+</html>
