@@ -1,9 +1,8 @@
 import requests
 
-url = "http://192.168.11.4:8848/parse-pdf"
-file_path = r"pdf"
-# file_path = r"pdf"
-# file_path = r"pdf"
+url = "http://ip:8848/parse-pdf"
+file_path = r"简历(1).pdf"
+
 
 with open(file_path, 'rb') as file:
     files = {'file': file}
