@@ -73,7 +73,6 @@ def method_paddle(save_path):
     ocr_engine = PPStructure(table=False, ocr=True, show_log=True)
 
     save_folder = './output'
-    # img_path = r"pdf"
     img_path = save_path
     result = ocr_engine(img_path)
     for index, res in enumerate(result):
