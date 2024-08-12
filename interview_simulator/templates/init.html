@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Initialize Interview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Initialize Interview</h1>
+    <form action="/" method="POST">
+        <label for="job_title">Job Title:</label><br>
+        <input type="text" id="job_title" name="job_title"><br><br>
+        <label for="job_description">Job Description:</label><br>
+        <textarea id="job_description" name="job_description"></textarea><br><br>
+        <label for="resume_text">Resume:</label><br>
+        <textarea id="resume_text" name="resume_text"></textarea><br><br>
+        <input type="submit" value="Start Interview">
+    </form>
+</body>
+</html>

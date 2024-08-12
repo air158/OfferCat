@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interview Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Interview Results</h1>
+    <h2>History</h2>
+    {% for record in records %}
+    <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
+    {% endfor %}
+
+    <h2>Suggestions</h2>
+    <p>{{ suggestions }}</p>
+</body>
+</html>
