@@ -42,19 +42,19 @@
     </script>
 </head>
 <body onload="startCountdown()">
-    <h1>Interview</h1>
+    <h1>模拟面试</h1>
     <p>{{ question }}</p>
-    <p>Time remaining: <span id="countdown">{{ countdown_time }}</span> seconds</p>
+    <p>倒计时: <span id="countdown">{{ countdown_time }}</span> seconds</p>
     <form id="answerForm" action="/interview" method="POST">
-        <label for="answer">Your Answer:</label><br>
+        <label for="answer">你的回答:</label><br>
         <textarea id="answer" name="answer" required></textarea><br><br>
         <!-- 隐藏字段用于提交持续时间 -->
         <input type="hidden" id="duration" name="duration">
-        <input type="submit" value="Submit" onclick="submitForm(); return false;">
+        <input type="submit" value="提交" onclick="submitForm(); return false;">
     </form>
 
-    <h2>History</h2>
-    <button onclick="toggleHistory()">Toggle History</button>
+    <h2>历史记录</h2>
+    <button onclick="toggleHistory()">打开/隐藏历史记录</button>
     <div id="history" style="display: block;">
         {% for record in history %}
         <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>

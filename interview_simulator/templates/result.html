@@ -6,13 +6,21 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Interview Results</h1>
-    <h2>History</h2>
+    <h1>面试结果</h1>
+    <h2>面试记录</h2>
     {% for record in records %}
     <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
     {% endfor %}
 
-    <h2>Suggestions</h2>
+    <h2>面试建议</h2>
     <p>{{ suggestions }}</p>
+
+    <form action="/go_back_init">
+        <input type="submit" value="返回简历填写">
+    </form>
+    
+    <form action="/history", method="GET">
+        <input type="submit" value="面试记录">
+    </form>
 </body>
 </html>
