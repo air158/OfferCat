@@ -1,0 +1,12 @@
+fastapi==0.112.0
+fitz==0.0.1.dev2
+icecream==2.1.3
+paddleocr==2.8.1
+paddleocr.egg==info
+pdfminer==20191125
+pdfminer.six==20220524
+pdfplumber==0.7.4
+PyPDF2==3.0.1
+Requests==2.32.3
+tika==2.6.0
+uvicorn==0.30.5
