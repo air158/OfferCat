@@ -43,12 +43,12 @@ def init():
 def interview():
     if 'questions' not in session:
         return redirect(url_for('init'))
-    if not session['questions']:
-            return redirect(url_for('result'))
+
     if request.method == 'POST':
         answer = request.form['answer']
         duration = request.form['duration']  # 接收前端提交的持续时间
         question = session['questions'].pop(0)
+        session.modified = True  # 标记 session 已修改
         interview_id = session['interview_id']  # 获取当前面试的ID
 
         # 保存历史记录
@@ -62,6 +62,9 @@ def interview():
         )
         db.session.add(record)
         db.session.commit()
+
+        if not session['questions']:
+            return redirect(url_for('result'))
 
     current_question = session['questions'][0] if session['questions'] else None
     interview_id = session['interview_id']
