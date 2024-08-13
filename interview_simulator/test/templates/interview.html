@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interview Questions</title>
+</head>
+<body>
+    <h1>Interview Questions</h1>
+    <div id="questions"></div>
+
+    <form id="interviewForm" action="/stream_questions" method="POST">
+        <label for="job_title">Job Title:</label><br>
+        <input type="text" id="job_title" name="job_title"><br><br>
+
+        <label for="job_description">Job Description:</label><br>
+        <textarea id="job_description" name="job_description"></textarea><br><br>
+
+        <label for="resume_text">Resume:</label><br>
+        <textarea id="resume_text" name="resume_text"></textarea><br><br>
+
+        <button type="submit">Generate Interview Questions</button>
+    </form>
+
+    <script>
+        document.getElementById('interviewForm').onsubmit = function(e) {
+            e.preventDefault();  // 防止表单的默认提交行为
+            
+            const job_title = document.getElementById('job_title').value;
+            const job_description = document.getElementById('job_description').value;
+            const resume_text = document.getElementById('resume_text').value;
+
+            const eventSource = new EventSource(`/stream_questions?job_title=${encodeURIComponent(job_title)}&job_description=${encodeURIComponent(job_description)}&resume_text=${encodeURIComponent(resume_text)}`);
+            
+            eventSource.onmessage = function(event) {
+                const questionsDiv = document.getElementById('questions');
+                questionsDiv.innerHTML += event.data + '<br>';
+            };
+
+            eventSource.onerror = function() {
+                eventSource.close();
+            };
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interview Questions</title>
+</head>
+<body>
+    <h1>Interview Questions</h1>
+    
+
+    <form id="interviewForm" action="/stream_questions" method="POST">
+        <button type="submit">生成面试问题</button> 
+    </form>
+    <button type="submit">开始面试</button> 
+    <div id="questions"></div>
+
+    
+
+    <script>
+        document.getElementById('interviewForm').onsubmit = function(e) {
+            e.preventDefault();  // 防止表单的默认提交行为
+            
+            const job_title = document.getElementById('job_title').value;
+            const job_description = document.getElementById('job_description').value;
+            const resume_text = document.getElementById('resume_text').value;
+
+            const eventSource = new EventSource(`/stream_questions`);
+            
+            eventSource.onmessage = function(event) {
+                const questionsDiv = document.getElementById('questions');
+                questionsDiv.innerHTML += event.data + '<br>';
+            };
+
+            eventSource.onerror = function() {
+                eventSource.close();
+            };
+        };
+    </script>
+</body>
+</html>
