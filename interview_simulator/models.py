@@ -17,3 +17,9 @@ class InterviewRecord(db.Model):
     duration = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.Float, nullable=False)
     interview_id = db.Column(db.String(100), nullable=False)  # 关联每次面试的唯一ID
+
+# 定义存储问题的模型
+class QuestionData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    interview_id = db.Column(db.Integer)
+    questions = db.Column(db.Text)

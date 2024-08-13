@@ -7,28 +7,59 @@
 <body>
     <h1>Interview Questions</h1>
     
-
+    <div id="connectionStatus"></div>
     <form id="interviewForm" action="/stream_questions" method="POST">
         <button type="submit">生成面试问题</button> 
     </form>
-    <button type="submit">开始面试</button> 
+    <form action="/go_back_interview">
+        <input type="submit" value="开始面试">
+    </form>
     <div id="questions"></div>
 
     
 
     <script>
         document.getElementById('interviewForm').onsubmit = function(e) {
+            console.log("1");
             e.preventDefault();  // 防止表单的默认提交行为
-            
-            const job_title = document.getElementById('job_title').value;
-            const job_description = document.getElementById('job_description').value;
-            const resume_text = document.getElementById('resume_text').value;
+            console.log("2");
 
             const eventSource = new EventSource(`/stream_questions`);
+
+            document.getElementById('connectionStatus').innerText = '正在连接...';
+
+            // 当连接打开时
+            eventSource.onopen = function () {
+                console.log('连接已打开');
+                // 可以在这里根据实际情况隐藏或修改 "正在连接..." 的显示
+                document.getElementById('connectionStatus').innerText = '连接已建立,等待回答中';
+            };
             
             eventSource.onmessage = function(event) {
                 const questionsDiv = document.getElementById('questions');
-                questionsDiv.innerHTML += event.data + '<br>';
+                console.log(event.data)
+                if(event.data == "[DONE]") {
+                    questionsDiv.innerHTML += '<br><br>' + "面试问题已生成完毕,请开始面试";
+                }
+                else {
+                    
+                    let index = event.data.indexOf("@");
+                    if(index!== -1) {
+                        // 从@开始截断原字符串，得到后半部分
+                        let afterAt = event.data.slice(index);
+                        console.log('afterAt1'+afterAt)
+
+                        // 在@后添加!
+                        afterAt = afterAt.replace("@", "<br>");
+                        console.log('afterAt2'+afterAt)
+                        console.log('index'+index)
+                        console.log('slice'+event.data.slice(0, index))
+                        questionsDiv.innerHTML += event.data.slice(0, index) + afterAt
+                    }
+                    else {
+                        questionsDiv.innerHTML += event.data;
+                    }
+                }
             };
 
             eventSource.onerror = function() {
