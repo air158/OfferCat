@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interview History</title>
+</head>
+<body>
+    <h1>面试记录</h1>
+    {% for record in records %}
+    <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
+    {% endfor %}
+    <a href="{{ url_for('history') }}">返回面试记录列表</a>
+</body>
+</html>

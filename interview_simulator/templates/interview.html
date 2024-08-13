@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        let countdown = {{ countdown_time }};
+        let startTime = new Date().getTime(); // 获取当前时间作为开始时间
+        let interval;
+
+        function startCountdown() {
+            const countdownElement = document.getElementById('countdown');
+            interval = setInterval(() => {
+                countdown -= 1;
+                countdownElement.textContent = countdown;
+
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    submitForm();  // 倒计时结束后自动提交表单
+                }
+            }, 1000);
+        }
+
+        function submitForm() {
+            let endTime = new Date().getTime(); // 获取当前时间作为结束时间
+            let duration = (endTime - startTime) / 1000; // 计算持续时间，单位为秒
+
+            document.getElementById('duration').value = duration; // 设置隐藏字段的值
+            clearInterval(interval); // 防止双重提交
+            document.getElementById('answerForm').submit(); // 提交表单
+        }
+
+        function toggleHistory() {
+            var historyDiv = document.getElementById("history");
+            if (historyDiv.style.display === "none") {
+                historyDiv.style.display = "block";
+            } else {
+                historyDiv.style.display = "none";
+            }
+        }
+    </script>
+</head>
+<body onload="startCountdown()">
+    <h1>模拟面试</h1>
+    <p>{{ question }}</p>
+    <p>倒计时: <span id="countdown">{{ countdown_time }}</span> seconds</p>
+    <form id="answerForm" action="/interview" method="POST">
+        <label for="answer">你的回答:</label><br>
+        <textarea id="answer" name="answer" required></textarea><br><br>
+        <!-- 隐藏字段用于提交持续时间 -->
+        <input type="hidden" id="duration" name="duration">
+        <input type="submit" value="提交" onclick="submitForm(); return false;">
+    </form>
+
+    <h2>历史记录</h2>
+    <button onclick="toggleHistory()">打开/隐藏历史记录</button>
+    <div id="history" style="display: block;">
+        {% for record in history %}
+        <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
