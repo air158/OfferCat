@@ -23,7 +23,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// 将用户信息存储在上下文中，以便后续处理使用
-		c.Set("userID", claims.UserID)
+		c.Set("uid", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Set("role", claims.Role)
 

@@ -12,3 +12,9 @@ type SimulatedInterview struct {
 	Performance    string    `json:"performance,omitempty"` // 用户在模拟面试中的表现
 	Feedback       string    `json:"feedback,omitempty"`    // 系统生成的反馈
 }
+
+type Resume struct {
+	ID      int    `json:"id" gorm:"primaryKey"`
+	UserID  int    `json:"user_id"`
+	Content string `json:"content"`
+}

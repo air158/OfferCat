@@ -4,3 +4,8 @@ database:
   user: "root"
   password:
   name:
+minio:
+    endpoint:
+    accessKeyID:
+    secretAccessKey:
+    useSSL: false
