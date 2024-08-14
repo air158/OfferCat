@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var jwtSecret = []byte("我爱玩元梦之星王者荣耀真好玩") // 替换为你自己的密钥
+var jwtSecret = []byte("我爱玩元梦之星王者荣耀真好玩") // jwt 加密密钥
 
 type Claims struct {
 	UserID   uint   `json:"user_id"`
