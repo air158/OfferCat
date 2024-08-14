@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response, stream_with_context
-from models import db, JobInfo, InterviewRecord, QuestionData
+from models import db, JobInfo, InterviewRecord, QuestionData, Interview
 import time
 import uuid  # 用于生成唯一的面试ID
 import os
@@ -7,10 +7,10 @@ import requests
 import json
 
 # 设置倒计时时长（例如60秒）
-countdown_time = 15
+countdown_time = 20
 
 #面试题数量
-ques_len = "3"
+ques_len = 4
 
 chat_api_key = os.getenv('SPARK_API_KEY')
 chat_api_secret = os.getenv('SPARK_API_SECRET')
@@ -89,12 +89,13 @@ def stream_questions():
     resume_text = session['resume_text']
     interview_id = session['interview_id']
     
-    prompt = "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭" \
-             f"**请只给我面试题，不要输出其他无关内容，面试题用口语的形式表达。**\n**必须每个问题是一行**，**必须用\\n代表这个问题结束,也就是用换行符**\n绝对不能出现@，这是被禁止的符号" \
+    prompt = "忘记之前的所有内容,只能遵守接下来我要说的话" \
+             "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭" \
+             f"**请只给我面试题，不要输出其他无关内容，面试题用口语的形式表达。**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
              f"岗位名称：{job_title}\n" \
              f"岗位要求：\n{job_description}\n" \
              f"面试者简历：\n{resume_text}\n" \
-             f"\n你是这个 {job_title} 岗位的面试官，请依据 岗位要求 和 面试者简历 为面试者给出 {ques_len} 道面试题。\n" \
+             f"\n你是这个 {job_title} 岗位的面试官，请依据 岗位要求 和 面试者简历 为面试者给出 {str(ques_len)} 道面试题。\n" \
              f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。\n" \
 
     headers = {
@@ -127,17 +128,16 @@ def stream_questions():
                 yield f"data: [DONE]\n\n"
                 break
             buffer += chunk
-            # 检查是否有完整的问题（以 '@' 结尾）
             question = ""
             while '\n' in buffer:
                 question, remaining_buffer = buffer.split('\n', 1)
                 question = question.strip()
                 buffer = remaining_buffer
                 test = '+'+question+'+'
-                print('test:'+test+':end')
+                print('test:'+test)
                 if test and test != '++' and test != '+\n+':
                     questions.append(question)
-            chunk = chunk.replace('\n','@')
+            chunk = chunk.replace('\n','¥¥')
             yield f"data: {chunk}\n\n"
     return Response(stream_with_context(generate()), content_type='text/event-stream')
 
@@ -175,11 +175,25 @@ def stream_answer():
 @app.route('/stream_result', methods=['GET', 'POST'])
 def stream_result():
     job_title = session['job_title']
-
     interview_id = session.get('interview_id')
-    records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
 
-    prompt = f"基于当前{job_title}岗位的面试的历史记录，请给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{records}"
+    interview = Interview.query.filter_by(interview_id=interview_id).first()
+    if not interview:
+        interview = Interview(interview_id=interview_id, job_title=job_title)
+        db.session.add(interview)
+        db.session.commit()
+    else:
+        return Response(interview.interview_feedback, content_type='text/plain')
+
+
+    records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
+    record_txt = ""
+    for record in records:
+        record_txt += f"面试官: “{record.question}” 面试者: “{record.answer}” 回答耗时：{record.duration}秒\n"
+
+    prompt = f"基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{record_txt}"
+
+    print('result:', prompt)
 
     headers = {
         'Authorization': f'Bearer {chat_key}',
@@ -193,11 +207,17 @@ def stream_result():
         "stream": True
     }
 
+    full_response = ""
     def generate():
+        nonlocal full_response
         for chunk in stream_response(chat_url, headers, data):
             if chunk == "[DONE]":
+                # 保存评价到Interview模型
+                interview.interview_feedback = full_response
+                db.session.commit()
                 yield f"data: [DONE]\n\n"
                 break
+            full_response += chunk
             yield f"data: {chunk}\n\n"
 
     return Response(stream_with_context(generate()), content_type='text/event-stream')
@@ -239,7 +259,11 @@ def interview():
 def result():
     interview_id = session.get('interview_id')
     records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
-
+    # 获取或创建 Interview 对象
+    interview = Interview.query.filter_by(interview_id=interview_id).first()
+    if interview and interview.interview_feedback:
+        # 如果已经有评价，则直接返回
+        return render_template('result.html', records=records, interview_feedback=interview.interview_feedback)
     return render_template('result.html', records=records)
 
 def generate_improvement_suggestions(records):
@@ -275,7 +299,9 @@ def history():
 @app.route('/history/<interview_id>', methods=['GET'])
 def view_history(interview_id):
     records = InterviewRecord.query.filter_by(interview_id=interview_id).all()
-    return render_template('view_history.html', records=records)
+    suggestions = Interview.query.filter_by(interview_id=interview_id).all()
+    print('suggestions ', suggestions)
+    return render_template('view_history.html', records=records, suggestions=suggestions)
 
 @app.route('/question')
 def question():

@@ -21,5 +21,11 @@ class InterviewRecord(db.Model):
 # 定义存储问题的模型
 class QuestionData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    interview_id = db.Column(db.Integer)
+    interview_id = db.Column(db.String(100), nullable=False)
     questions = db.Column(db.Text)
+
+class Interview(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    interview_id = db.Column(db.String(100), unique=True, nullable=False)
+    job_title = db.Column(db.String(128), nullable=False)
+    interview_feedback = db.Column(db.Text, nullable=True)  # 存储面试的评价

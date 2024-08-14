@@ -31,8 +31,8 @@
             document.getElementById('answerForm').submit(); // 提交表单
         }
 
-        function toggleHistory() {
-            var historyDiv = document.getElementById("history");
+        function toggletag(tag) { //"history"
+            var historyDiv = document.getElementById(tag);
             if (historyDiv.style.display === "none") {
                 historyDiv.style.display = "block";
             } else {
@@ -54,10 +54,11 @@
     </form>
 
     <h2>参考回答</h2>
-    <div id="ai_answer"></div>
+    <button onclick="toggletag('ai_answer')">打开/隐藏历史记录</button>
+    <div id="ai_answer" style="display: block;"></div>
 
     <h2>历史记录</h2>
-    <button onclick="toggleHistory()">打开/隐藏历史记录</button>
+    <button onclick="toggletag('history')">打开/隐藏历史记录</button>
     <div id="history" style="display: block;">
         {% for record in history %}
         <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
