@@ -26,20 +26,20 @@
 
             const eventSource = new EventSource(`/stream_questions`);
 
-            document.getElementById('connectionStatus').innerText = '正在连接...';
+            document.getElementById('connectionStatus').innerText = '正在连接到猫猫...';
 
             // 当连接打开时
             eventSource.onopen = function () {
                 console.log('连接已打开');
                 // 可以在这里根据实际情况隐藏或修改 "正在连接..." 的显示
-                document.getElementById('connectionStatus').innerText = '连接已建立,等待回答中';
+                document.getElementById('connectionStatus').innerText = '猫猫正在思考...';
             };
             
             eventSource.onmessage = function(event) {
                 const questionsDiv = document.getElementById('questions');
                 console.log(event.data)
                 if(event.data == "[DONE]") {
-                    questionsDiv.innerHTML += '<br><br>' + "面试问题已生成完毕,请开始面试";
+                    document.getElementById('connectionStatus').innerText = '猫猫已思考完毕，请开始面试！';
                 }
                 else {
                     
