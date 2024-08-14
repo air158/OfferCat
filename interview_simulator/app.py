@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response, stream_with_context
-from models import db, JobInfo, InterviewRecord
+from models import db, JobInfo, InterviewRecord, QuestionData, Interview
 import time
 import uuid  # 用于生成唯一的面试ID
 import os
@@ -7,16 +7,18 @@ import requests
 import json
 
 # 设置倒计时时长（例如60秒）
-countdown_time = 60
+countdown_time = 20
 
 #面试题数量
-ques_len = "5"
+ques_len = 4
 
 chat_api_key = os.getenv('SPARK_API_KEY')
 chat_api_secret = os.getenv('SPARK_API_SECRET')
 
 chat_key = f'{chat_api_key}:{chat_api_secret}'
 chat_model = 'generalv3.5'
+
+print('chat_key ', chat_key)
 
 chat_url = 'https://spark-api-open.xf-yun.com/v1/chat/completions'
 
@@ -37,25 +39,36 @@ def init():
 
         session['job_title'] = job_title
         session['job_description'] = job_description
+        session['idx'] = 0
         session['resume_text'] = resume_text
         session['interview_id'] = str(uuid.uuid4())  # 生成一个新的面试ID
 
         # 调用大模型生成问题
-        # questions = generate_interview_questions(job_title, job_description, resume_text)
-        # # 模拟大模型生成问题
-        # questions = [
-        #     "Can you explain a challenging project you've worked on?",
-        #     "How do you handle tight deadlines?"
-        # ]
-        # session['questions'] = questions
         return redirect(url_for('question'))
 
     return render_template('init.html')
 
+def save_questions_to_database(interview_id, questions):
+    # 将列表转换为字符串，例如使用逗号连接
+    questions_str = '@'.join(questions)
+    question_entry = QuestionData(interview_id=interview_id, questions=questions_str)
+    db.session.add(question_entry)
+    db.session.commit()  
+def get_questions_from_database(interview_id):
+    question_data = QuestionData.query.filter_by(interview_id=interview_id).first()
+    if question_data:
+        questions_str = question_data.questions
+        # 将逗号分隔的字符串转换回列表
+        questions = questions_str.split('@')
+        return questions
+    else:
+        return None
 def stream_response(url, headers, data):
-    buffer = ""
+    print('start')
     response = requests.post(url, headers=headers, data=json.dumps(data), stream=True)
+    print('get')
     for line in response.iter_lines():
+        # print('line ', line)
         if line:
             decoded_line = line.decode('utf-8')
             if decoded_line.strip() == "data: [DONE]":
@@ -65,30 +78,25 @@ def stream_response(url, headers, data):
                 try:
                     json_data = json.loads(decoded_line[6:])
                     content = json_data['choices'][0]['delta']['content']
-                    buffer += content
-
-                    # 检查是否有完整的问题（以 '@' 结尾）
-                    while '@' in buffer:
-                        question, buffer = buffer.split('@', 1)
-                        question = question.strip()
-                        yield f"{question}@"
+                    yield content
                 except (KeyError, json.JSONDecodeError):
                     pass
 
-@app.route('/stream_questions', methods=['GET'])
+@app.route('/stream_questions', methods=['GET','POST'])
 def stream_questions():
     job_title = session['job_title']
     job_description = session['job_description']
     resume_text = session['resume_text']
+    interview_id = session['interview_id']
     
-    prompt = f"岗位名称：{job_title}\n" \
+    prompt = "忘记之前的所有内容,只能遵守接下来我要说的话" \
+             "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭" \
+             f"**请只给我面试题，不要输出其他无关内容，面试题用口语的形式表达。**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
+             f"岗位名称：{job_title}\n" \
              f"岗位要求：\n{job_description}\n" \
              f"面试者简历：\n{resume_text}\n" \
-             f"\n你是这个 {job_title} 岗位的面试官，请依据 岗位要求 和 面试者简历 为面试者给出 5 道面试题。\n" \
+             f"\n你是这个 {job_title} 岗位的面试官，请依据 岗位要求 和 面试者简历 为面试者给出 {str(ques_len)} 道面试题。\n" \
              f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。\n" \
-             f"请只给我面试题，不要输出其他无关内容，面试题用口语的形式表达，每个问题是一行，@代表这个问题结束"
-    
-    print('prompt ', prompt)
 
     headers = {
         'Authorization': f'Bearer {chat_key}',
@@ -103,39 +111,131 @@ def stream_questions():
     }
 
     questions = []
+    
+    def generate():
+        buffer = ""
+        
+        for chunk in stream_response(chat_url, headers, data):
+            if chunk == "[DONE]":
+                test = '+'+buffer+'+'
+                if test and test != '++' and test != '+\n+':
+                    print('test:',test,'ch:',chunk)
+                    questions.append(buffer)
+                print("[DONE]")
+                # 保存生成的问题到 数据库 中
+                print('interview_id_g', interview_id)
+                save_questions_to_database(interview_id, questions)
+                yield f"data: [DONE]\n\n"
+                break
+            buffer += chunk
+            question = ""
+            while '\n' in buffer:
+                question, remaining_buffer = buffer.split('\n', 1)
+                question = question.strip()
+                buffer = remaining_buffer
+                test = '+'+question+'+'
+                print('test:'+test)
+                if test and test != '++' and test != '+\n+':
+                    questions.append(question)
+            chunk = chunk.replace('\n','¥¥')
+            yield f"data: {chunk}\n\n"
+    return Response(stream_with_context(generate()), content_type='text/event-stream')
+
+@app.route('/stream_answer', methods=['GET'])
+def stream_answer():
+    job_title = session['job_title']
+    job_description = session['job_description']
+    resume_text = session['resume_text']
+
+    current_question = request.args.get('question')
+
+    prompt = f"你是{job_title}岗位的面试者，请对面试官的问题提供包含重要信息简单的解答，需要有条理并且重点信息加粗：\n{current_question}"
+
+    headers = {
+        'Authorization': f'Bearer {chat_key}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        "model": chat_model,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "stream": True
+    }
 
     def generate():
         for chunk in stream_response(chat_url, headers, data):
             if chunk == "[DONE]":
-                print("DONE")
-                print('session ',session['questions'])
+                yield f"data: [DONE]\n\n"
                 break
-            print(chunk)
-            if chunk != '@':
-                questions.append(chunk)
             yield f"data: {chunk}\n\n"
-    # 保存生成的问题到 session 中
-    session['questions'] = questions
-    print('session ',session['questions'])
+
+    return Response(stream_with_context(generate()), content_type='text/event-stream')
+
+@app.route('/stream_result', methods=['GET', 'POST'])
+def stream_result():
+    job_title = session['job_title']
+    interview_id = session.get('interview_id')
+
+    interview = Interview.query.filter_by(interview_id=interview_id).first()
+    if not interview:
+        interview = Interview(interview_id=interview_id, job_title=job_title)
+        db.session.add(interview)
+        db.session.commit()
+    else:
+        return Response(interview.interview_feedback, content_type='text/plain')
+
+
+    records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
+    record_txt = ""
+    for record in records:
+        record_txt += f"面试官: “{record.question}” 面试者: “{record.answer}” 回答耗时：{record.duration}秒\n"
+
+    prompt = f"基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{record_txt}"
+
+    print('result:', prompt)
+
+    headers = {
+        'Authorization': f'Bearer {chat_key}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        "model": chat_model,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "stream": True
+    }
+
+    full_response = ""
+    def generate():
+        nonlocal full_response
+        for chunk in stream_response(chat_url, headers, data):
+            if chunk == "[DONE]":
+                # 保存评价到Interview模型
+                interview.interview_feedback = full_response
+                db.session.commit()
+                yield f"data: [DONE]\n\n"
+                break
+            full_response += chunk
+            yield f"data: {chunk}\n\n"
+
     return Response(stream_with_context(generate()), content_type='text/event-stream')
 
 # 面试页面
 @app.route('/interview', methods=['GET', 'POST'])
 def interview():
-    if 'questions' not in session:
-        return redirect(url_for('init'))
+    interview_id = session['interview_id']  # 获取当前面试的ID
+    print('interview_id_i', interview_id)
+    questions = get_questions_from_database(interview_id)
 
     if request.method == 'POST':
         answer = request.form['answer']
         duration = request.form['duration']  # 接收前端提交的持续时间
-        question = session['questions'].pop(0)
-        session.modified = True  # 标记 session 已修改
-        interview_id = session['interview_id']  # 获取当前面试的ID
-
         # 保存历史记录
         record = InterviewRecord(
             job_title=session['job_title'],
-            question=question,
+            question=questions[session['idx']],
             answer=answer,
             duration=float(duration),  # 转换为浮点数保存
             timestamp=time.time(),
@@ -144,10 +244,12 @@ def interview():
         db.session.add(record)
         db.session.commit()
 
-        if not session['questions']:
+        session['idx'] += 1
+        session.modified = True  # 标记 session 已修改
+        if session['idx'] >= len(questions):
             return redirect(url_for('result'))
 
-    current_question = session['questions'][0] if session['questions'] else None
+    current_question = questions[session['idx']]
     interview_id = session['interview_id']
     history = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 仅获取当前面试的记录
     return render_template('interview.html', question=current_question, countdown_time=countdown_time, history=history)
@@ -157,12 +259,12 @@ def interview():
 def result():
     interview_id = session.get('interview_id')
     records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
-    # # 模拟大模型生成改进建议
-    # suggestions = "Consider providing more specific examples and quantify your achievements when possible."
-    # 调用大模型生成改进建议
-    suggestions = generate_improvement_suggestions(records)
-
-    return render_template('result.html', records=records, suggestions=suggestions)
+    # 获取或创建 Interview 对象
+    interview = Interview.query.filter_by(interview_id=interview_id).first()
+    if interview and interview.interview_feedback:
+        # 如果已经有评价，则直接返回
+        return render_template('result.html', records=records, interview_feedback=interview.interview_feedback)
+    return render_template('result.html', records=records)
 
 def generate_improvement_suggestions(records):
     # 整理历史记录文本
@@ -197,12 +299,27 @@ def history():
 @app.route('/history/<interview_id>', methods=['GET'])
 def view_history(interview_id):
     records = InterviewRecord.query.filter_by(interview_id=interview_id).all()
-    return render_template('view_history.html', records=records)
+    suggestions = Interview.query.filter_by(interview_id=interview_id).all()
+    print('suggestions ', suggestions)
+    return render_template('view_history.html', records=records, suggestions=suggestions)
+
+@app.route('/question')
+def question():
+    return render_template('question.html')
 
 # 返回到上一个页面的路由
 @app.route('/go_back_result')
 def go_back_result():
     return redirect(url_for('result'))
+@app.route('/go_back_history')
+def go_back_history():
+    return redirect(url_for('history'))
+@app.route('/go_back_question')
+def go_back_question():
+    return redirect(url_for('question'))
+@app.route('/go_back_interview')
+def go_back_interview():
+    return redirect(url_for('interview'))
 @app.route('/go_back_init')
 def go_back_init():
     return redirect(url_for('init'))

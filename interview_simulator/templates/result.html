@@ -13,7 +13,13 @@
     {% endfor %}
 
     <h2>面试建议</h2>
-    <p>{{ suggestions }}</p>
+    <div id="ai_suggestions">
+        {% if interview_feedback %}
+        {{ interview_feedback|safe }}
+        {% else %}
+        猫猫正在思考...
+        {% endif %}
+    </div>
 
     <form action="/go_back_init">
         <input type="submit" value="返回简历填写">
@@ -22,5 +28,30 @@
     <form action="/history", method="GET">
         <input type="submit" value="面试记录">
     </form>
+
+    <script>
+        {% if not interview_feedback %}
+        const eventSource = new EventSource(`/stream_result`);
+        eventSource.onopen = function() {
+            aiAnswerDiv = document.getElementById("ai_suggestions");
+            aiAnswerDiv.innerHTML = "猫猫正在思考...";
+            console.log("Connection opened");
+        };
+
+        eventSource.onmessage = function(event) {
+            const aiAnswerDiv = document.getElementById("ai_suggestions");
+            if (aiAnswerDiv.innerHTML == "猫猫正在思考...") aiAnswerDiv.innerHTML = "";
+            if (event.data === "[DONE]") {
+                eventSource.close();
+            } else {
+                aiAnswerDiv.innerHTML += event.data;// + '<br>';
+            }
+        };
+
+        eventSource.onerror = function() {
+            eventSource.close();
+        };
+        {% endif %}
+    </script>
 </body>
 </html>

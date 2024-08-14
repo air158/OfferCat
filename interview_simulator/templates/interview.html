@@ -31,8 +31,8 @@
             document.getElementById('answerForm').submit(); // 提交表单
         }
 
-        function toggleHistory() {
-            var historyDiv = document.getElementById("history");
+        function toggletag(tag) { //"history"
+            var historyDiv = document.getElementById(tag);
             if (historyDiv.style.display === "none") {
                 historyDiv.style.display = "block";
             } else {
@@ -43,7 +43,7 @@
 </head>
 <body onload="startCountdown()">
     <h1>模拟面试</h1>
-    <p>{{ question }}</p>
+    <p>面试官的问题:<br>{{ question }}</p>
     <p>倒计时: <span id="countdown">{{ countdown_time }}</span> seconds</p>
     <form id="answerForm" action="/interview" method="POST">
         <label for="answer">你的回答:</label><br>
@@ -53,12 +53,41 @@
         <input type="submit" value="提交" onclick="submitForm(); return false;">
     </form>
 
+    <h2>参考回答</h2>
+    <button onclick="toggletag('ai_answer')">打开/隐藏历史记录</button>
+    <div id="ai_answer" style="display: block;"></div>
+
     <h2>历史记录</h2>
-    <button onclick="toggleHistory()">打开/隐藏历史记录</button>
+    <button onclick="toggletag('history')">打开/隐藏历史记录</button>
     <div id="history" style="display: block;">
         {% for record in history %}
         <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
         {% endfor %}
     </div>
+
+    <script>
+        const question = encodeURIComponent("{{ question }}");  // 获取当前问题
+        const eventSource = new EventSource(`/stream_answer?question=${question}`);
+
+        eventSource.onopen = function() {
+            const aiAnswerDiv = document.getElementById("ai_answer");
+            aiAnswerDiv.innerHTML = "猫猫正在思考...";
+            console.log("EventSource connected");
+        };
+
+        eventSource.onmessage = function(event) {
+            const aiAnswerDiv = document.getElementById("ai_answer");
+            if (aiAnswerDiv.innerHTML == "猫猫正在思考...") aiAnswerDiv.innerHTML = "";
+            if (event.data === "[DONE]") {
+                eventSource.close();
+            } else {
+                aiAnswerDiv.innerHTML += event.data;// + '<br>';
+            }
+        };
+
+        eventSource.onerror = function() {
+            eventSource.close();
+        };
+    </script>
 </body>
 </html>
