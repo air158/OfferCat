@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Interview Questions</title>
+    <script src="{{ url_for('static', filename='js/ui/marked.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/highlight.min.js') }}"></script>
 </head>
 <body>
     <h1>Interview Questions</h1>
@@ -19,10 +21,9 @@
     
 
     <script>
+        var collectedText = ''; // 用于存储所有流式输入内容
         document.getElementById('interviewForm').onsubmit = function(e) {
-            console.log("1");
             e.preventDefault();  // 防止表单的默认提交行为
-            console.log("2");
 
             const eventSource = new EventSource(`/stream_questions`);
 
@@ -33,6 +34,7 @@
                 console.log('连接已打开');
                 // 可以在这里根据实际情况隐藏或修改 "正在连接..." 的显示
                 document.getElementById('connectionStatus').innerText = '猫猫正在思考...';
+                collectedText = ''
             };
             
             eventSource.onmessage = function(event) {
@@ -43,7 +45,8 @@
                 }
                 else {
                     let formattedData = event.data.split("¥¥").join("<br>");
-                    questionsDiv.innerHTML += formattedData;
+                    collectedText += formattedData
+                    questionsDiv.innerHTML = marked.parse(collectedText);
                 }
             };
 

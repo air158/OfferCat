@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Interview Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='js/ui/marked.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/highlight.min.js') }}"></script>
 </head>
 <body>
     <h1>面试结果</h1>
@@ -15,7 +17,7 @@
     <h2>面试建议</h2>
     <div id="ai_suggestions">
         {% if interview_feedback %}
-        {{ interview_feedback|safe }}
+        {{ marked.parse(interview_feedback|safe) }}
         {% else %}
         猫猫正在思考...
         {% endif %}
@@ -28,14 +30,17 @@
     <form action="/history", method="GET">
         <input type="submit" value="面试记录">
     </form>
+    
 
     <script>
         {% if not interview_feedback %}
+        var collectedText = ''; // 用于存储所有流式输入内容
         const eventSource = new EventSource(`/stream_result`);
         eventSource.onopen = function() {
             aiAnswerDiv = document.getElementById("ai_suggestions");
             aiAnswerDiv.innerHTML = "猫猫正在思考...";
             console.log("Connection opened");
+            collectedText = ''
         };
 
         eventSource.onmessage = function(event) {
@@ -44,7 +49,13 @@
             if (event.data === "[DONE]") {
                 eventSource.close();
             } else {
-                aiAnswerDiv.innerHTML += event.data;// + '<br>';
+                collectedText += event.data;
+                aiAnswerDiv.innerHTML = marked.parse(collectedText);
+
+                // 使用highlight.js对代码块进行高亮处理
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
             }
         };
 
