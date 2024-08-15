@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <title>Interview Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="{{ url_for('static', filename='js/ui/marked.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui/highlight.min.js') }}"></script>
 </head>
 <body>
+    <script src="{{ url_for('static', filename='js/ui/marked.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/highlight.min.js') }}"></script>
     <h1>面试结果</h1>
     <h2>面试记录</h2>
     {% for record in records %}
