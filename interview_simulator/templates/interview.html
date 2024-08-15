@@ -9,6 +9,20 @@
         let startTime = new Date().getTime(); // 获取当前时间作为开始时间
         let interval;
 
+        function typeSentence(charIndex) {
+            sentence = "{{ question }}"
+            if (charIndex < sentence.length) {
+                document.getElementById("question").innerHTML = sentence.slice(0, charIndex + 1);
+                setTimeout(() => {
+                    typeSentence(charIndex + 1);
+                }, 50);  // 逐字显示的时间间隔
+            } else {
+                document.getElementById("question").innerHTML = sentence;
+                startCountdown();
+            }
+        }
+
+
         function startCountdown() {
             const countdownElement = document.getElementById('countdown');
             interval = setInterval(() => {
@@ -42,9 +56,9 @@
         }
     </script>
 </head>
-<body onload="startCountdown()">
+<body onload="typeSentence(0)">
     <h1>模拟面试</h1>
-    <p>面试官的问题:<br>{{ question }}</p>
+    <p>面试官的问题:<div id="question"></div></p>
     <p>倒计时: <span id="countdown">{{ countdown_time }}</span> seconds</p>
     <form id="answerForm" action="/interview" method="POST">
         <label for="answer">你的回答:</label><br>
@@ -122,5 +136,6 @@
             eventSource.close();
         };
     </script>
+    
 </body>
 </html>
