@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response, stream_with_context
+from werkzeug.utils import secure_filename
 from models import db, JobInfo, InterviewRecord, QuestionData, Interview
 import time
 import uuid  # 用于生成唯一的面试ID
@@ -27,6 +28,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'your_secret_key'
 
+app.config['UPLOAD_FOLDER'] = '/Users/didi/workspace/OfferCat/interview_simulator/uploaded_files'
+app.config['ALLOWED_EXTENSIONS'] = {'pdf'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
 db.init_app(app)
 
 # 初始化页面，开始新的面试
@@ -47,6 +54,38 @@ def init():
         return redirect(url_for('question'))
 
     return render_template('init.html')
+
+@app.route('/upload_pdf', methods=['POST'])
+def upload_pdf():
+    if 'pdf_file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file part'})
+
+    file = request.files['pdf_file']
+    
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No selected file'})
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        
+
+        # 假设你有一个解析PDF的API
+        with open(file_path, 'rb') as f:
+            response = requests.post("http://localhost:8848/parse-pdf", files={'file': f})
+        
+        if response.ok:
+            response_data = response.json()
+            # 假设返回的数据格式正确，可以直接使用
+            resume_text = response_data#.get('resume_text', '解析失败')
+            print('resume_text', resume_text)
+            return jsonify({'success': True, 'resume_text': resume_text})
+        else:
+            return jsonify({'success': False, 'message': 'PDF解析失败'})
+
+    return jsonify({'success': False, 'message': 'Invalid file format'})
+
 
 def save_questions_to_database(interview_id, questions):
     # 将列表转换为字符串，例如使用逗号连接
@@ -97,7 +136,8 @@ def stream_questions():
              f"面试者简历：\n{resume_text}\n" \
              f"\n你是这个 {job_title} 岗位的面试官，请依据 岗位要求 和 面试者简历 为面试者给出 {str(ques_len)} 道面试题。\n" \
              f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。\n" \
-
+    
+    print('prompt', prompt)
     headers = {
         'Authorization': f'Bearer {chat_key}',
         'Content-Type': 'application/json'

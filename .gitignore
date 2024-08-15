@@ -1,1 +1,7 @@
 .DS_Store
+GPT_tmp
+test_tmp
+uploaded_files
+.pdf
+flask_test
+__pycache__
