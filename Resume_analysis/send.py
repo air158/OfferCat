@@ -1,7 +1,7 @@
 import requests
 
-url = "http://ip:8848/parse-pdf"
-file_path = r"简历(1).pdf"
+url = "http://localhost:8848/parse-pdf"
+file_path = r"/Users/didi/workspace/OfferCat/Resume_analysis/测试.pdf"
 
 
 with open(file_path, 'rb') as file:
