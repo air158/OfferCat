@@ -12,14 +12,11 @@ import (
 	"offercat/v0/internal/utils"
 )
 
+// This is the main function
+// This is the entry point of the application
 func main() {
 	var err error
-	// This is the main function
-	// This is the entry point of the application
 	db.InitDB()
-	// 设置环境变量
-	//os.Setenv("SPARK_API_KEY", "a7c55761823e132301eacceb043913f2")
-	//os.Setenv("SPARK_API_SECRET", "M2NjYzIzZmIyNmJmNGEyNzIyNGRhOGZi")
 
 	log.Println("DB connected")
 	// 自动迁移所有模型
@@ -39,12 +36,11 @@ func main() {
 	r := gin.Default()
 	r.Use(cors.Default())
 	// 注册接口
-	r.POST("/register", auth.EmailRegister)
+	r.POST("/api/register", auth.EmailRegister)
 	// 邮箱验证接口
-	r.GET("/verify", auth.VerifyEmail)
+	r.GET("/api/verify", auth.VerifyEmail)
 	// 登录接口
-	r.POST("/login", auth.Login)
-
+	r.POST("/api/login", auth.Login)
 	r.GET("/ping", utils.Ping)
 
 	// 开发者使用
@@ -84,5 +80,8 @@ func main() {
 			})
 		})
 	}
-	r.Run(":12345")
+	err = r.Run(":12345")
+	if err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }
