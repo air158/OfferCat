@@ -22,12 +22,11 @@ type User struct {
 
 	JobProfile JobProfile `json:"job_profile"` // 用户的工作相关信息
 	// Additional attributes
-	Resume               []resume.Resume                `json:"resume,omitempty"`               // 候选人的简历
-	InterviewHistory     []interview.InterviewRecord    `json:"interview_history,omitempty"`    // 面试记录，引用到具体面试记录的结构
-	SimulatedInterviews  []interview.SimulatedInterview `json:"simulated_interviews,omitempty"` // 进行的模拟面试
-	Feedback             []interview.Feedback           `json:"feedback,omitempty"`             // 用户收到的反馈
-	Language             string                         `json:"language"`
-	NotificationSettings string                         `json:"notification_settings,omitempty"` // 用户的通知设置          // 用户偏好设置
+	Resume               []resume.Resume       `json:"resume,omitempty"`               // 候选人的简历
+	SimulatedInterviews  []interview.Interview `json:"simulated_interviews,omitempty"` // 进行的模拟面试
+	Feedback             []interview.Feedback  `json:"feedback,omitempty"`             // 用户收到的反馈
+	Language             string                `json:"language"`
+	NotificationSettings string                `json:"notification_settings,omitempty"` // 用户的通知设置          // 用户偏好设置
 	// JWT Token Tracking (optional)
 	JWTToken string `json:"-"`
 }

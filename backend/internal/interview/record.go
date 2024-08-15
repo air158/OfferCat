@@ -1,27 +1,71 @@
 package interview
 
-import "time"
+import (
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"log"
+	"net/http"
+	"offercat/v0/internal/lib"
+)
 
-// InterviewRecord 定义面试记录的结构体
-type InterviewRecord struct {
-	ID            uint       `json:"id" gorm:"primaryKey"`
-	UserID        uint       `json:"user_id"`
-	InterviewDate time.Time  `json:"interview_date"`
-	Position      string     `json:"position"`
-	Company       string     `json:"company"`
-	Questions     []Question `json:"questions,omitempty" gorm:"foreignKey:InterviewID"` // 面试中问到的问题列表
-	Responses     []Response `json:"responses,omitempty" gorm:"foreignKey:InterviewID"` // 用户回答的列表
-	Feedback      []Feedback `json:"feedback,omitempty" gorm:"foreignKey:InterviewID"`  // 面试官或系统的反馈
+type QueryInterviewResultRequest struct {
+	InterviewID uint `json:"interview_id" binding:"required"`
 }
 
-// Feedback 用户反馈
-type Feedback struct {
-	ID           uint      `json:"id" gorm:"primaryKey"`
-	InterviewID  uint      `json:"interview_id"`     // 关联的面试记录ID
-	UserID       uint      `json:"user_id"`          // 提供反馈的用户ID，可能是面试官或者系统
-	FeedbackType string    `json:"feedback_type"`    // 反馈类型（如"面试官反馈"，"系统反馈"等）
-	Content      string    `json:"content"`          // 反馈的具体内容
-	Rating       int       `json:"rating,omitempty"` // 评分（如果有打分机制）
-	CreatedAt    time.Time `json:"created_at"`       // 反馈创建时间
-	UpdatedAt    time.Time `json:"updated_at"`       // 反馈更新时间
+type InterviewResultResponse struct {
+	QuestionContent string `json:"question_content"`
+	UserAnswer      string `json:"user_answer"`
+	LLMAnswer       string `json:"llm_answer"`
+}
+
+func QueryInterviewResult(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req QueryInterviewResultRequest
+
+		// 解析请求体中的 JSON 数据
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+			return
+		}
+		// 鉴权
+		uid := lib.GetUid(c)
+		if err := db.Where("id = ? AND user_id = ?", req.InterviewID, uid).First(&Interview{}).Error; err != nil {
+			log.Println("Error fetching interview:", err)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized Or Interview Not Found"})
+		}
+
+		// 查询问题和用户答案
+		var questions []Question
+		if err := db.Where("interview_id = ?", req.InterviewID).Find(&questions).Error; err != nil {
+			log.Println("Error fetching questions:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch questions"})
+			return
+		}
+
+		// 查询对应的答案
+		var answers []Answer
+		if err := db.Where("interview_id = ?", req.InterviewID).Find(&answers).Error; err != nil {
+			log.Println("Error fetching answers:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch answers"})
+			return
+		}
+
+		// 组装结果
+		var results []InterviewResultResponse
+		for _, question := range questions {
+			for _, answer := range answers {
+				if question.ID == answer.QuestionID {
+					result := InterviewResultResponse{
+						QuestionContent: question.Content,
+						UserAnswer:      answer.Content,
+						LLMAnswer:       answer.LLMAnswer,
+					}
+					results = append(results, result)
+				}
+			}
+		}
+
+		// 返回结果
+		c.JSON(http.StatusOK, gin.H{"results": results})
+	}
 }

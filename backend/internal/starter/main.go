@@ -22,12 +22,13 @@ func main() {
 	// 自动迁移所有模型
 	err = db.DB.AutoMigrate(
 		&auth.User{},
-		&interview.InterviewRecord{},
 		&interview.Question{},
 		&resume.Resume{},
 		&auth.EmailVerification{},
 		&interview.Preset{},
 		&job.PresetJob{},
+		&interview.Interview{},
+		&interview.Answer{},
 	)
 	if err != nil {
 		panic("failed to migrate database" + err.Error())
@@ -68,6 +69,8 @@ func main() {
 		// 获取简历列表
 		protected.GET("/resume", resume.GetResumeList)
 
+		protected.POST("/interview/record", interview.QueryInterviewResult(db.DB))
+
 		protected.GET("/profile", func(c *gin.Context) {
 			userID, _ := c.Get("uid")
 			username, _ := c.Get("username")
@@ -79,6 +82,11 @@ func main() {
 				"role":     role,
 			})
 		})
+		protected.POST("/simulation/register", interview.CreateSimulatedInterview)
+		protected.GET("/simulation/:id", interview.GetSimulatedInterview)
+		protected.POST("/simulation/answer", interview.CreateAnswer)
+
+		protected.Any("/:mod/:task/proxy", interview.ProxyLLM("http://localhost:5000", db.DB))
 	}
 	err = r.Run(":12345")
 	if err != nil {
