@@ -1,0 +1,14 @@
+database:
+  host: "117.72.35.68"
+  port: 3306
+  user: "root"
+  password: "UiiWz5mAdmiygwAbAFem"
+  name: "offer_cat"
+minio:
+    endpoint: "117.72.35.68:9000"
+    accessKeyID: "minioadmin"
+    secretAccessKey: "kdMEt79ywmvq3P36FXTh"
+    useSSL: false
+spark:
+    apiKey : "a7c55761823e132301eacceb043913f2"
+    apiSecret : "M2NjYzIzZmIyNmJmNGEyNzIyNGRhOGZi"

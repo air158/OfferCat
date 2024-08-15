@@ -79,7 +79,7 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 			}
 
 			var preset Preset
-			err = db.Where("user_id=?", lib.GetUid(c)).First(&preset).Error
+			err = db.Where("user_id=?", lib.Uid(c)).First(&preset).Error
 
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query preset information"})
@@ -188,7 +188,7 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 			question := Question{
 				// 这个id注意前端json里面要用数字形式传进来
 				InterviewID: (uint)(requestData["interview_id"].(float64)),
-				UserID:      uint(lib.GetUid(c)),
+				UserID:      uint(lib.Uid(c)),
 				Content:     completeData,
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
@@ -203,7 +203,7 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		if task == "llm-answer" {
 			questionBranchID := (uint)(requestData["question_branch_id"].(float64))
 			questionID := (uint)(requestData["question_id"].(float64))
-			userID := uint(lib.GetUid(c))
+			userID := uint(lib.Uid(c))
 
 			// 尝试在数据库中查找对应的记录
 			var userAnswer Answer
@@ -240,7 +240,7 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		}
 		if task == "result" {
 			id := uint(requestData["interview_id"].(float64))
-			userID := uint(lib.GetUid(c))
+			userID := uint(lib.Uid(c))
 			finalSummary := completeData
 			var interview Interview
 			// 尝试在数据库中查找对应的记录,TODO：这里有注意带&符号

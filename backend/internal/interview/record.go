@@ -28,7 +28,7 @@ func QueryInterviewResult(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		// 鉴权
-		uid := lib.GetUid(c)
+		uid := lib.Uid(c)
 		if err := db.Where("id = ? AND user_id = ?", req.InterviewID, uid).First(&Interview{}).Error; err != nil {
 			log.Println("Error fetching interview:", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized Or Interview Not Found"})

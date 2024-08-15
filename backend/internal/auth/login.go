@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"offercat/v0/internal/db"
+	"offercat/v0/internal/lib"
 )
 
 func Login(c *gin.Context) {
@@ -40,5 +41,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	lib.Code(c, 200)
+	lib.Msg(c, "登录成功")
+	lib.Data(c, gin.H{"token": token})
 }

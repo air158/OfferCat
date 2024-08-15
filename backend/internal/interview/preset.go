@@ -44,7 +44,7 @@ func UpsertPreset(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
-	uidInt := lib.GetUid(c)
+	uidInt := lib.Uid(c)
 
 	var existingPreset Preset
 	// 在数据库中查找该用户的预设信息
@@ -83,7 +83,7 @@ func UpsertPreset(c *gin.Context) {
 
 // GetPreset 获取用户的预设信息
 func GetPreset(c *gin.Context) {
-	uidInt := lib.GetUid(c)
+	uidInt := lib.Uid(c)
 
 	var preset Preset
 	if err := db.DB.Where("user_id = ?", uidInt).First(&preset).Error; err != nil {
@@ -118,7 +118,7 @@ func UploadResumePDF(c *gin.Context) {
 	defer srcFile.Close()
 	log.Println("Uploaded file opened successfully")
 
-	uid := lib.GetUid(c)
+	uid := lib.Uid(c)
 	log.Printf("User ID: %d", uid)
 
 	var resumeEntity resume.Resume
@@ -193,7 +193,7 @@ type ResumeSuggestionRequest struct {
 
 // 简历建议和评价
 func ResumeSuggestion(c *gin.Context) {
-	uid := lib.GetUid(c)
+	uid := lib.Uid(c)
 	var err error
 	var req ResumeSuggestionRequest
 	var resumeEntity *resume.Resume

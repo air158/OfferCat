@@ -2,11 +2,9 @@ package utils
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"offercat/v0/internal/lib"
 )
 
 func Ping(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "pong",
-	})
+	lib.Ok(c, "pong")
 }

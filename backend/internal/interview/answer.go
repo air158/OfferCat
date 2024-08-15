@@ -30,7 +30,7 @@ func CreateAnswer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	answer.UserID = uint(lib.GetUid(c))
+	answer.UserID = uint(lib.Uid(c))
 	answer.CreatedAt = time.Now()
 	answer.UpdatedAt = time.Now()
 

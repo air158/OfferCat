@@ -30,7 +30,7 @@ func CreateSimulatedInterview(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	entity.UserID = uint(lib.GetUid(c))
+	entity.UserID = uint(lib.Uid(c))
 	entity.SimulationDate = time.Now()
 
 	// 将模拟面试信息保存到数据库
