@@ -40,6 +40,9 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		if task == "llm-answer" {
 			proxyPath = "/stream_answer"
 		}
+		if task == "result" {
+			proxyPath = "/stream_result"
+		}
 
 		// 解析目标URL并设置代理
 		target, err := url.Parse(targetHost)
@@ -67,6 +70,23 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		// 添加 "chat_key" 字段
 		requestData["chat_key"] = fmt.Sprintf("%s:%s", viper.GetString("spark.apiKey"), viper.GetString("spark.apiSecret"))
 		log.Println("Modified request data:", requestData) // 添加日志
+		promptText := requestData["prompt_text"]
+		if task == "result" {
+			requestData["prompt_text"], err = FormatInterviewResult(db, uint(requestData["interview_id"].(float64)))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to format interview result"})
+				return
+			}
+
+			var preset Preset
+			err = db.Where("user_id=?", lib.GetUid(c)).First(&preset).Error
+
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query preset information"})
+				return
+			}
+			requestData["job_title"] = preset.JobTitle
+		}
 
 		// 将加工后的JSON重新编码为字节数组
 		modifiedBodyBytes, err := json.Marshal(requestData)
@@ -217,6 +237,42 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 					log.Printf("Failed to update question record: %v", err)
 				}
 			}
+		}
+		if task == "result" {
+			id := uint(requestData["interview_id"].(float64))
+			userID := uint(lib.GetUid(c))
+			finalSummary := completeData
+			var interview Interview
+			// 尝试在数据库中查找对应的记录,TODO：这里有注意带&符号
+			err := db.Where("id = ? AND user_id=? ", id, userID).First(&interview).Error
+
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					// 如果记录不存在，则创建新的记录
+					interview = Interview{
+						ID:           id,
+						UserID:       userID,
+						FinalSummary: finalSummary,
+						Dialog:       promptText.(string),
+					}
+					if err := db.Create(&interview).Error; err != nil {
+						// 处理创建时的错误
+						log.Printf("Failed to create new question record: %v", err)
+					}
+				} else {
+					// 处理查询时的其他错误
+					log.Printf("Failed to query question record: %v", err)
+				}
+			} else {
+				// 如果记录存在，则更新记录
+				interview.FinalSummary = completeData
+				interview.Dialog = promptText.(string)
+				if err := db.Save(&interview).Error; err != nil {
+					// 处理更新时的错误
+					log.Printf("Failed to update question record: %v", err)
+				}
+			}
+
 		}
 
 	}

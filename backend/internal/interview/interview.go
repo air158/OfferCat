@@ -15,12 +15,12 @@ type Interview struct {
 	SimulationDate time.Time `json:"simulation_date"`
 	LLMModel       string    `json:"llm_model"`             // 使用的 LLM 模型
 	Performance    string    `json:"performance,omitempty"` // 用户在模拟面试中的表现
-	Feedback       string    `json:"feedback,omitempty"`    // 系统生成的反馈
 	InterviewRole  string    `json:"interview_role"`        // 面试角色
 	InterviewStyle string    `json:"interview_style"`       // 面试风格
 	FinalSummary   string    `json:"final_summary"`         // 最终评价
 	Type           string    `json:"type"`                  // 模拟面试类型
 	FeedbackID     uint      `json:"feedback_id,omitempty"` // 反馈ID
+	Dialog         string    `json:"dialog_id,omitempty"`   // 对话
 }
 
 func CreateSimulatedInterview(c *gin.Context) {

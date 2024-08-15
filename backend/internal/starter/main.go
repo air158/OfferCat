@@ -86,6 +86,7 @@ func main() {
 		protected.GET("/simulation/:id", interview.GetSimulatedInterview)
 		protected.POST("/simulation/answer", interview.CreateAnswer)
 
+		// 流代理
 		protected.Any("/:mod/:task/proxy", interview.ProxyLLM("http://localhost:5000", db.DB))
 	}
 	err = r.Run(":12345")

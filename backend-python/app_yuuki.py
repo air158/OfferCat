@@ -161,33 +161,27 @@ def stream_result():
     req_data = request.get_json()
 
     job_title = req_data.get('job_title')
-    # job_description = req_data.get('job_description')
-    # resume_text = req_data.get('resume_text')
-    interview_id = req_data.get('interview_id')
-    # ques_len = req_data.get('ques_len')
     chat_key = req_data.get('chat_key')
-    current_question = req_data.get('question')
+    prompt_text = req_data.get('prompt_text')
 
     # current_question = request.args.get('question')
 
-    if not job_title or not chat_key or not current_question or not interview_id :
+    if not job_title or not chat_key or not prompt_text:
         return jsonify({"error": "Missing data in request"}), 400
 
-    interview = Interview.query.filter_by(interview_id=interview_id).first()
-    if not interview:
-        interview = Interview(interview_id=interview_id, job_title=job_title)
-        db.session.add(interview)
-        db.session.commit()
-    else:
-        return Response(interview.interview_feedback, content_type='text/plain')
+    # interview = Interview.query.filter_by(interview_id=interview_id).first()
+    # if not interview:
+    #     interview = Interview(interview_id=interview_id, job_title=job_title)
+    #     db.session.add(interview)
+    #     db.session.commit()
+    # else:
+    #     return Response(interview.interview_feedback, content_type='text/plain')
 
 
-    records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
-    record_txt = ""
-    for record in records:
-        record_txt += f"面试官: “{record.question}” 面试者: “{record.answer}” 回答耗时：{record.duration}秒\n"
+    # records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
 
-    prompt = f"基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{record_txt}"
+
+    prompt = f"基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{prompt_text}"
 
     print('result:', prompt)
 
@@ -209,8 +203,8 @@ def stream_result():
         for chunk in stream_response(chat_url, headers, llm_req):
             if chunk == "[DONE]":
                 # 保存评价到Interview模型
-                interview.interview_feedback = full_response
-                db.session.commit()
+                # interview.interview_feedback = full_response
+                # db.session.commit()
                 yield f"data: [DONE]\n\n"
                 break
             full_response += chunk
