@@ -22,8 +22,8 @@ type ChatRequest struct {
 }
 
 func CallSparkAPI(userInput string) (string, error) {
-	apiKey := viper.GetString("apiKey")
-	apiSecret := viper.GetString("apiSecret")
+	apiKey := viper.GetString("spark.apiKey")
+	apiSecret := viper.GetString("spark.apiSecret")
 
 	if apiKey == "" || apiSecret == "" {
 		return "", fmt.Errorf("API key or secret is not set")

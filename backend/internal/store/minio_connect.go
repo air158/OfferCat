@@ -7,13 +7,14 @@ import (
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
+	"offercat/v0/internal/lib"
 )
 
 func MinioInit(c *gin.Context, err error) (string, *minio.Client, bool) {
 	endpoint, accessKeyID, secretAccessKey, useSSL := MinioProfile()
 	if endpoint == "" || accessKeyID == "" || secretAccessKey == "" {
 		log.Println("MinIO client configuration not set")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "MinIO client configuration not set"})
+		lib.Err(c, http.StatusInternalServerError, "minio对象存储客户端配置有误", err)
 		return "", nil, true
 	}
 
@@ -26,7 +27,7 @@ func MinioInit(c *gin.Context, err error) (string, *minio.Client, bool) {
 	})
 	if err != nil {
 		log.Printf("Error initializing MinIO client: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize MinIO client"})
+		lib.Err(c, http.StatusInternalServerError, "初始化minio客户端失败", err)
 		return "", nil, true
 	}
 	log.Println("MinIO client initialized successfully")
@@ -47,7 +48,7 @@ func MinioDownloadFile(c *gin.Context, client *minio.Client, bucketName string, 
 	err := client.FGetObject(c, bucketName, objectName, filePath, minio.GetObjectOptions{})
 	if err != nil {
 		log.Printf("Error downloading file from MinIO: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to download file from MinIO"})
+		lib.Err(c, http.StatusInternalServerError, "从MinIO下载文件失败", err)
 		return err
 	}
 	log.Println("File downloaded from MinIO successfully")

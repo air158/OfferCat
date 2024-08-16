@@ -1,7 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response, stream_with_context
 from models_yuuki import db, JobInfo, InterviewRecord, QuestionData, Interview
-import time
-import uuid  # 用于生成唯一的面试ID
 import os
 import requests
 import json
@@ -161,33 +159,27 @@ def stream_result():
     req_data = request.get_json()
 
     job_title = req_data.get('job_title')
-    # job_description = req_data.get('job_description')
-    # resume_text = req_data.get('resume_text')
-    interview_id = req_data.get('interview_id')
-    # ques_len = req_data.get('ques_len')
     chat_key = req_data.get('chat_key')
-    current_question = req_data.get('question')
+    prompt_text = req_data.get('prompt_text')
 
     # current_question = request.args.get('question')
 
-    if not job_title or not chat_key or not current_question or not interview_id :
+    if not job_title or not chat_key or not prompt_text:
         return jsonify({"error": "Missing data in request"}), 400
 
-    interview = Interview.query.filter_by(interview_id=interview_id).first()
-    if not interview:
-        interview = Interview(interview_id=interview_id, job_title=job_title)
-        db.session.add(interview)
-        db.session.commit()
-    else:
-        return Response(interview.interview_feedback, content_type='text/plain')
+    # interview = Interview.query.filter_by(interview_id=interview_id).first()
+    # if not interview:
+    #     interview = Interview(interview_id=interview_id, job_title=job_title)
+    #     db.session.add(interview)
+    #     db.session.commit()
+    # else:
+    #     return Response(interview.interview_feedback, content_type='text/plain')
 
 
-    records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
-    record_txt = ""
-    for record in records:
-        record_txt += f"面试官: “{record.question}” 面试者: “{record.answer}” 回答耗时：{record.duration}秒\n"
+    # records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
 
-    prompt = f"基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{record_txt}"
+
+    prompt = f"基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{prompt_text}"
 
     print('result:', prompt)
 
@@ -209,8 +201,8 @@ def stream_result():
         for chunk in stream_response(chat_url, headers, llm_req):
             if chunk == "[DONE]":
                 # 保存评价到Interview模型
-                interview.interview_feedback = full_response
-                db.session.commit()
+                # interview.interview_feedback = full_response
+                # db.session.commit()
                 yield f"data: [DONE]\n\n"
                 break
             full_response += chunk
@@ -250,41 +242,41 @@ def stream_result():
 #     history = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 仅获取当前面试的记录
 #     return render_template('interview.html', question=current_question, countdown_time=countdown_time, history=history)
 
-# 结果页面
-@app.route('/result', methods=['GET'])
-def result():
-    interview_id = session.get('interview_id')
-    records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
-    # 获取或创建 Interview 对象
-    interview = Interview.query.filter_by(interview_id=interview_id).first()
-    if interview and interview.interview_feedback:
-        # 如果已经有评价，则直接返回
-        return render_template('result.html', records=records, interview_feedback=interview.interview_feedback)
-    return render_template('result.html', records=records)
-
-def generate_improvement_suggestions(records):
-    # 整理历史记录文本
-    history_text = "\n".join([f"Q: {rec.question}\nA: {rec.answer}\n" for rec in records])
-    
-    # 大模型 API 生成建议
-    prompt = f"基于面试的历史记录，请给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{history_text}"
-    
-    headers = {
-        'Authorization': f'Bearer {chat_key}',
-        'Content-Type': 'application/json'
-    }
-    data = {
-        "model": chat_model,  # 指定模型版本
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
-    }
-    
-    response = requests.post(chat_url, headers=headers, json=data)
-    result = response.json()
-
-    suggestions = result.get('choices', [])[0].get('message', {}).get('content', "").strip()
-    return suggestions
+# # 结果页面
+# @app.route('/result', methods=['GET'])
+# def result():
+#     interview_id = session.get('interview_id')
+#     records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
+#     # 获取或创建 Interview 对象
+#     interview = Interview.query.filter_by(interview_id=interview_id).first()
+#     if interview and interview.interview_feedback:
+#         # 如果已经有评价，则直接返回
+#         return render_template('result.html', records=records, interview_feedback=interview.interview_feedback)
+#     return render_template('result.html', records=records)
+#
+# def generate_improvement_suggestions(records):
+#     # 整理历史记录文本
+#     history_text = "\n".join([f"Q: {rec.question}\nA: {rec.answer}\n" for rec in records])
+#
+#     # 大模型 API 生成建议
+#     prompt = f"基于面试的历史记录，请给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{history_text}"
+#
+#     headers = {
+#         'Authorization': f'Bearer {chat_key}',
+#         'Content-Type': 'application/json'
+#     }
+#     data = {
+#         "model": chat_model,  # 指定模型版本
+#         "messages": [
+#             {"role": "user", "content": prompt}
+#         ]
+#     }
+#
+#     response = requests.post(chat_url, headers=headers, json=data)
+#     result = response.json()
+#
+#     suggestions = result.get('choices', [])[0].get('message', {}).get('content', "").strip()
+#     return suggestions
 
 # # 查看旧的历史记录
 # @app.route('/history', methods=['GET'])

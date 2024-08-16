@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/smtp"
 	"offercat/v0/internal/db"
+	"offercat/v0/internal/lib"
 	"regexp"
 	"time"
 )
@@ -30,13 +31,13 @@ type RegisterInput struct {
 func EmailRegister(c *gin.Context) {
 	var registerInput RegisterInput
 	if err := c.ShouldBindJSON(&registerInput); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		lib.Err(c, http.StatusBadRequest, "Invalid input", nil)
 		return
 	}
 
 	// 校验邮箱格式
 	if !isValidEmail(registerInput.Email) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
+		lib.Err(c, http.StatusBadRequest, "Invalid email format", nil)
 		return
 	}
 
@@ -45,14 +46,15 @@ func EmailRegister(c *gin.Context) {
 	var newUser User
 	result := db.DB.Where("email = ?", registerInput.Email).First(&existingUser)
 	if result.RowsAffected > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already registered"})
+		lib.Err(c, http.StatusInternalServerError, "Email already registered", nil)
 		return
 	}
 
 	// 密码哈希处理
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerInput.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		lib.Err(c, http.StatusInternalServerError, "Failed to hash password", err)
+
 		return
 	}
 	newUser.PasswordHash = string(hashedPassword)
@@ -71,14 +73,15 @@ func EmailRegister(c *gin.Context) {
 
 	// 保存用户信息到数据库
 	if err := db.DB.Create(&newUser).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		lib.Err(c, http.StatusInternalServerError, "Failed to create user", err)
+
 		return
 	}
 
 	// 生成验证令牌并保存到数据库
 	token, err := generateVerificationToken()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate verification token"})
+		lib.Err(c, http.StatusInternalServerError, "Failed to generate verification toke", err)
 		return
 	}
 	verification := EmailVerification{
@@ -87,18 +90,23 @@ func EmailRegister(c *gin.Context) {
 		ExpiresAt: time.Now().Add(24 * time.Hour), // 令牌24小时后过期
 	}
 	if err := db.DB.Create(&verification).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save verification token"})
+		lib.Err(c, http.StatusInternalServerError, "Failed to send verification token", err)
 		return
 	}
 
 	// 发送验证邮件
 	err = sendVerificationEmail(newUser.ID, newUser.Email, token)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+		lib.Err(c, http.StatusInternalServerError, "Failed to send verification email", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Registration successful, please check your email to verify your account."})
+	lib.Ok(c, "请查看邮箱，点击校验链接以继续完成注册", gin.H{
+		"email":    newUser.Email,
+		"username": newUser.Username,
+		"valid":    newUser.Valid,
+	})
+
 }
 
 // 验证邮箱格式是否正确
@@ -124,7 +132,7 @@ func sendVerificationEmail(userID uint, email, token string) error {
 	senderEmail := "1195396626@qq.com"
 	senderPassword := "izsyvpvqegeyjaia"
 
-	verificationLink := fmt.Sprintf("http://127.0.0.1:12345/verify?token=%s", token)
+	verificationLink := fmt.Sprintf("http://127.0.0.1:12345/api/verify?token=%s", token)
 	subject := "Verify your email address"
 	body := fmt.Sprintf("Please click the following link to verify your email address: %s", verificationLink)
 	message := fmt.Sprintf("From: %s\nTo: %s\nSubject: %s\n\n%s", senderEmail, email, subject, body)

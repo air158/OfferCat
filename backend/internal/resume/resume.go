@@ -45,7 +45,7 @@ func GetResumeListByUserID(userID uint) ([]Resume, error) {
 	return resumes, err
 }
 func GetResumeList(c *gin.Context) {
-	uid := lib.GetUid(c)
+	uid := lib.Uid(c)
 	resumes, err := GetResumeListByUserID(uint(uid))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

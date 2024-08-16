@@ -1,8 +1,10 @@
 package lib
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
-func GetUid(c *gin.Context) int {
+func Uid(c *gin.Context) int {
 	uid := c.MustGet("uid").(uint)
 	uidInt := int(uid)
 	return uidInt

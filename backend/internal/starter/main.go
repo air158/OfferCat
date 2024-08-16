@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"offercat/v0/internal/auth"
+	"offercat/v0/internal/common"
 	"offercat/v0/internal/db"
 	"offercat/v0/internal/interview"
 	"offercat/v0/internal/job"
@@ -35,7 +36,10 @@ func main() {
 	}
 
 	r := gin.Default()
+
 	r.Use(cors.Default())
+	r.Use(common.ResponseMiddleware())
+
 	// 注册接口
 	r.POST("/api/register", auth.EmailRegister)
 	// 邮箱验证接口
@@ -50,6 +54,8 @@ func main() {
 
 	// 受保护的路由
 	protected := r.Group("/api")
+	// 使用 ResponseMiddleware 中间件
+	protected.Use(common.ResponseMiddleware())
 	protected.Use(auth.JWTAuthMiddleware())
 	{
 		// 面试预设接口
@@ -86,6 +92,7 @@ func main() {
 		protected.GET("/simulation/:id", interview.GetSimulatedInterview)
 		protected.POST("/simulation/answer", interview.CreateAnswer)
 
+		// 流代理
 		protected.Any("/:mod/:task/proxy", interview.ProxyLLM("http://localhost:5000", db.DB))
 	}
 	err = r.Run(":12345")
