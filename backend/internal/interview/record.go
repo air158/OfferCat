@@ -24,21 +24,22 @@ func QueryInterviewResult(db *gorm.DB) gin.HandlerFunc {
 
 		// 解析请求体中的 JSON 数据
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+			lib.Err(c, http.StatusBadRequest, "解析请求体失败", err)
 			return
 		}
 		// 鉴权
 		uid := lib.Uid(c)
 		if err := db.Where("id = ? AND user_id = ?", req.InterviewID, uid).First(&Interview{}).Error; err != nil {
 			log.Println("Error fetching interview:", err)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized Or Interview Not Found"})
+			lib.Err(c, http.StatusUnauthorized, "未授权或面试不存在", err)
+			return
 		}
 
 		// 查询问题和用户答案
 		var questions []Question
 		if err := db.Where("interview_id = ?", req.InterviewID).Find(&questions).Error; err != nil {
 			log.Println("Error fetching questions:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch questions"})
+			lib.Err(c, http.StatusInternalServerError, "获取问题失败", err)
 			return
 		}
 
@@ -46,7 +47,7 @@ func QueryInterviewResult(db *gorm.DB) gin.HandlerFunc {
 		var answers []Answer
 		if err := db.Where("interview_id = ?", req.InterviewID).Find(&answers).Error; err != nil {
 			log.Println("Error fetching answers:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch answers"})
+			lib.Err(c, http.StatusInternalServerError, "获取答案失败", err)
 			return
 		}
 
@@ -66,6 +67,8 @@ func QueryInterviewResult(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// 返回结果
-		c.JSON(http.StatusOK, gin.H{"results": results})
+		lib.Ok(c, "获取面试结果成功", gin.H{
+			"results": results,
+		})
 	}
 }

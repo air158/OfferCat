@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"offercat/v0/internal/db"
 	"offercat/v0/internal/lib"
@@ -41,7 +42,7 @@ type Preset struct {
 func UpsertPreset(c *gin.Context) {
 	var inputPreset Preset
 	if err := c.ShouldBindJSON(&inputPreset); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		lib.Err(c, http.StatusBadRequest, "解析用户预设信息失败，可能是不合法的输入", err)
 		return
 	}
 	uidInt := lib.Uid(c)
@@ -56,7 +57,7 @@ func UpsertPreset(c *gin.Context) {
 			}
 		} else {
 			// 其他错误，返回错误响应
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query preset information"})
+			lib.Err(c, http.StatusInternalServerError, "查询预设信息失败", err)
 			return
 		}
 	}
@@ -74,11 +75,11 @@ func UpsertPreset(c *gin.Context) {
 
 	// 保存或更新预设信息
 	if err := db.DB.Save(&existingPreset).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save preset information"})
+		lib.Err(c, http.StatusInternalServerError, "保存预设信息失败", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Preset information saved successfully"})
+	lib.Ok(c, "保存预设信息成功", existingPreset)
 }
 
 // GetPreset 获取用户的预设信息
@@ -88,14 +89,14 @@ func GetPreset(c *gin.Context) {
 	var preset Preset
 	if err := db.DB.Where("user_id = ?", uidInt).First(&preset).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Preset information not found"})
+			lib.Err(c, http.StatusNotFound, "预设信息未找到", err)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query preset information"})
+		lib.Err(c, http.StatusInternalServerError, "查询预设信息失败", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, preset)
+	lib.Ok(c, "获取预设信息成功", preset)
 }
 
 func UploadResumePDF(c *gin.Context) {
@@ -103,7 +104,7 @@ func UploadResumePDF(c *gin.Context) {
 	file, err := c.FormFile("resume_file")
 	if err != nil {
 		log.Printf("Error in FormFile: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to upload file"})
+		lib.Err(c, http.StatusBadRequest, "上传文件失败", err)
 		return
 	}
 	log.Println("FormFile uploaded successfully")
@@ -112,10 +113,15 @@ func UploadResumePDF(c *gin.Context) {
 	srcFile, err := file.Open()
 	if err != nil {
 		log.Printf("Error opening uploaded file: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open uploaded file"})
+		lib.Err(c, http.StatusInternalServerError, "打开上传文件失败", err)
 		return
 	}
-	defer srcFile.Close()
+	defer func(srcFile multipart.File) {
+		err := srcFile.Close()
+		if err != nil {
+			log.Printf("Error closing uploaded file: %v", err)
+		}
+	}(srcFile)
 	log.Println("Uploaded file opened successfully")
 
 	uid := lib.Uid(c)
@@ -140,7 +146,7 @@ func UploadResumePDF(c *gin.Context) {
 	_, err = minioClient.PutObject(c, bucketName, objectName, srcFile, file.Size, minio.PutObjectOptions{ContentType: "application/pdf"})
 	if err != nil {
 		log.Printf("Error uploading file to MinIO: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload file to MinIO"})
+		lib.Err(c, http.StatusInternalServerError, "上传文件到MinIO失败", err)
 		return
 	}
 	log.Println("File uploaded to MinIO successfully")
@@ -152,7 +158,7 @@ func UploadResumePDF(c *gin.Context) {
 	err = resume.NewResume(&resumeEntity)
 	if err != nil {
 		log.Printf("Error adding resume to database: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add resume to database"})
+		lib.Err(c, http.StatusInternalServerError, "添加简历到数据库失败", err)
 		return
 	}
 	log.Println("Resume added to database successfully")
@@ -167,7 +173,7 @@ func UploadResumePDF(c *gin.Context) {
 	presetJson, err := json.Marshal(presetUpdate)
 	if err != nil {
 		log.Printf("Error encoding preset data: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode preset data"})
+		lib.Err(c, http.StatusInternalServerError, "编码预设数据失败", err)
 		return
 	}
 	log.Println("Preset data encoded to JSON successfully")
@@ -181,7 +187,9 @@ func UploadResumePDF(c *gin.Context) {
 
 	if c.Writer.Status() == http.StatusOK {
 		log.Println("Preset updated successfully, sending response")
-		c.JSON(http.StatusOK, gin.H{"message": "File uploaded and preset updated successfully", "url": fmt.Sprintf("%s/%s/%s", endpoint, bucketName, objectName)})
+		lib.Ok(c, "文件上传成功", gin.H{
+			"url": fmt.Sprintf("%s/%s/%s", endpoint, bucketName, objectName),
+		})
 	} else {
 		log.Println("Failed to update preset")
 	}
@@ -199,7 +207,7 @@ func ResumeSuggestion(c *gin.Context) {
 	var resumeEntity *resume.Resume
 	err = c.ShouldBindQuery(&req)
 	if err != nil || req.ResumeID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		lib.Err(c, http.StatusBadRequest, "解析请求失败，可能是不合法的输入", err)
 		log.Println(req.ResumeID)
 		return
 	}
@@ -209,7 +217,7 @@ func ResumeSuggestion(c *gin.Context) {
 
 	resumeList, err = resume.GetResumeListByUserID(uint(uid))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query resume information"})
+		lib.Err(c, http.StatusInternalServerError, "查询建立信息失败", err)
 		return
 	}
 	for _, r := range resumeList {
@@ -219,7 +227,7 @@ func ResumeSuggestion(c *gin.Context) {
 		}
 	}
 	if resumeEntity == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Resume not found"})
+		lib.Err(c, http.StatusNotFound, "简历未找到", nil)
 		return
 	}
 	path := resumeEntity.FilePath
@@ -229,8 +237,10 @@ func ResumeSuggestion(c *gin.Context) {
 	// 调用Spark API
 	response, err := llm.CallSparkAPI(stringFromPDF + prompt)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to call Spark API"})
+		lib.Err(c, http.StatusInternalServerError, "调用Spark API失败", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"suggestion": response})
+	lib.Ok(c, "获取简历建议成功", gin.H{
+		"suggestion": response,
+	})
 }

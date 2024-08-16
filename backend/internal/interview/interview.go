@@ -27,7 +27,7 @@ func CreateSimulatedInterview(c *gin.Context) {
 	// 从请求中解析模拟面试信息
 	var entity Interview
 	if err := c.ShouldBindJSON(&entity); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		lib.Err(c, http.StatusBadRequest, "解析模拟面试信息失败，可能是不合法的输入", err)
 		return
 	}
 	entity.UserID = uint(lib.Uid(c))
@@ -35,11 +35,11 @@ func CreateSimulatedInterview(c *gin.Context) {
 
 	// 将模拟面试信息保存到数据库
 	if err := db.DB.Create(&entity).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		lib.Err(c, http.StatusInternalServerError, "保存模拟面试信息失败", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, entity)
+	lib.Ok(c, "保存模拟面试信息成功", entity)
 }
 
 func GetSimulatedInterview(c *gin.Context) {
@@ -47,9 +47,9 @@ func GetSimulatedInterview(c *gin.Context) {
 	var entity Interview
 	id := c.Param("id")
 	if err := db.DB.Where("id = ?", id).First(&entity).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		lib.Err(c, http.StatusInternalServerError, "获取模拟面试信息失败", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, entity)
+	lib.Ok(c, "获取模拟面试信息成功", entity)
 }

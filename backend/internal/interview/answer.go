@@ -27,7 +27,7 @@ func CreateAnswer(c *gin.Context) {
 	// 从请求中解析用户答案
 	var answer Answer
 	if err := c.ShouldBindJSON(&answer); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		lib.Err(c, http.StatusBadRequest, "解析用户答案失败，可能是不合法的输入", err)
 		return
 	}
 	answer.UserID = uint(lib.Uid(c))
@@ -36,9 +36,9 @@ func CreateAnswer(c *gin.Context) {
 
 	// 将用户答案保存到数据库
 	if err := db.DB.Create(&answer).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		lib.Err(c, http.StatusInternalServerError, "保存用户答案失败", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, answer)
+	lib.Ok(c, "保存用户答案成功", answer)
 }

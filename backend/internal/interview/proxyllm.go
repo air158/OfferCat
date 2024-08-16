@@ -49,21 +49,21 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		proxy := httputil.NewSingleHostReverseProxy(target)
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse target URL"})
+			lib.Err(c, http.StatusInternalServerError, "解析目标URL失败", err)
 			return
 		}
 
 		// 读取原始请求体
 		bodyBytes, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read request body"})
+			lib.Err(c, http.StatusInternalServerError, "读取原始请求体失败", err)
 			return
 		}
 
 		// 解析请求体为JSON
 		var requestData map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &requestData); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+			lib.Err(c, http.StatusBadRequest, "解析请求体为JSON失败", err)
 			return
 		}
 
@@ -74,7 +74,7 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		if task == "result" {
 			requestData["prompt_text"], err = FormatInterviewResult(db, uint(requestData["interview_id"].(float64)))
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to format interview result"})
+				lib.Err(c, http.StatusInternalServerError, "格式化面试结果失败", err)
 				return
 			}
 
@@ -82,7 +82,7 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 			err = db.Where("user_id=?", lib.Uid(c)).First(&preset).Error
 
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query preset information"})
+				lib.Err(c, http.StatusInternalServerError, "查询该用户的预设信息失败", err)
 				return
 			}
 			requestData["job_title"] = preset.JobTitle
@@ -91,7 +91,7 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		// 将加工后的JSON重新编码为字节数组
 		modifiedBodyBytes, err := json.Marshal(requestData)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode JSON"})
+			lib.Err(c, http.StatusInternalServerError, "编码JSON失败", err)
 			return
 		}
 

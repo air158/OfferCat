@@ -31,13 +31,13 @@ type RegisterInput struct {
 func EmailRegister(c *gin.Context) {
 	var registerInput RegisterInput
 	if err := c.ShouldBindJSON(&registerInput); err != nil {
-		lib.Err(http.StatusBadRequest, "Invalid input", nil)
+		lib.Err(c, http.StatusBadRequest, "Invalid input", nil)
 		return
 	}
 
 	// 校验邮箱格式
 	if !isValidEmail(registerInput.Email) {
-		lib.Err(http.StatusBadRequest, "Invalid email format", nil)
+		lib.Err(c, http.StatusBadRequest, "Invalid email format", nil)
 		return
 	}
 
@@ -46,14 +46,14 @@ func EmailRegister(c *gin.Context) {
 	var newUser User
 	result := db.DB.Where("email = ?", registerInput.Email).First(&existingUser)
 	if result.RowsAffected > 0 {
-		lib.Err(http.StatusInternalServerError, "Email already registered", nil)
+		lib.Err(c, http.StatusInternalServerError, "Email already registered", nil)
 		return
 	}
 
 	// 密码哈希处理
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerInput.Password), bcrypt.DefaultCost)
 	if err != nil {
-		lib.Err(http.StatusInternalServerError, "Failed to hash password", err)
+		lib.Err(c, http.StatusInternalServerError, "Failed to hash password", err)
 
 		return
 	}
@@ -73,7 +73,7 @@ func EmailRegister(c *gin.Context) {
 
 	// 保存用户信息到数据库
 	if err := db.DB.Create(&newUser).Error; err != nil {
-		lib.Err(http.StatusInternalServerError, "Failed to create user", err)
+		lib.Err(c, http.StatusInternalServerError, "Failed to create user", err)
 
 		return
 	}
@@ -81,7 +81,7 @@ func EmailRegister(c *gin.Context) {
 	// 生成验证令牌并保存到数据库
 	token, err := generateVerificationToken()
 	if err != nil {
-		lib.Err(http.StatusInternalServerError, "Failed to generate verification toke", err)
+		lib.Err(c, http.StatusInternalServerError, "Failed to generate verification toke", err)
 		return
 	}
 	verification := EmailVerification{
@@ -90,24 +90,21 @@ func EmailRegister(c *gin.Context) {
 		ExpiresAt: time.Now().Add(24 * time.Hour), // 令牌24小时后过期
 	}
 	if err := db.DB.Create(&verification).Error; err != nil {
-		lib.Err(http.StatusInternalServerError, "Failed to send verification token", err)
+		lib.Err(c, http.StatusInternalServerError, "Failed to send verification token", err)
 		return
 	}
 
 	// 发送验证邮件
 	err = sendVerificationEmail(newUser.ID, newUser.Email, token)
 	if err != nil {
-		lib.Err(http.StatusInternalServerError, "Failed to send verification email", err)
+		lib.Err(c, http.StatusInternalServerError, "Failed to send verification email", err)
 		return
 	}
 
-	lib.Ok(c, gin.H{
-		"message":       "Registration successful",
-		"email":         newUser.Email,
-		"username":      newUser.Username,
-		"valid":         newUser.Valid,
-		"date_of_birth": newUser.DateOfBirth,
-		"last_login":    newUser.LastLogin,
+	lib.Ok(c, "请查看邮箱，点击校验链接以继续完成注册", gin.H{
+		"email":    newUser.Email,
+		"username": newUser.Username,
+		"valid":    newUser.Valid,
 	})
 
 }

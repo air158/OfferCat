@@ -8,7 +8,7 @@ import (
 type Response struct {
 	Code int         `json:"code"`
 	Data interface{} `json:"data,omitempty"`
-	Msg  string      `json:"msg,omitempty"`
+	Msg  string      `json:"massage,omitempty"`
 }
 
 func ResponseMiddleware() gin.HandlerFunc {
@@ -29,7 +29,7 @@ func ResponseMiddleware() gin.HandlerFunc {
 			data = c.Keys["data"]
 		}
 
-		msg := c.Keys["msg"]
+		msg := c.Keys["massage"]
 
 		// 构建统一响应结构体
 		response := Response{

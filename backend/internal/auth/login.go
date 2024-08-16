@@ -15,13 +15,14 @@ func Login(c *gin.Context) {
 		Password string `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&loginVals); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		lib.Err(c, http.StatusBadRequest, "不合法的输入", err)
 		return
 	}
 
 	var user User
 	if err := db.DB.Where("email = ? and valid = ? ", loginVals.Email, true).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		lib.Err(c, http.StatusUnauthorized, "用户名或密码错误", err)
+
 		return
 	}
 
@@ -30,14 +31,14 @@ func Login(c *gin.Context) {
 		log.Println(err)
 		log.Println(user.PasswordHash)
 		log.Println(loginVals.Password)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		lib.Err(c, http.StatusUnauthorized, "用户名或密码错误", err)
 		return
 	}
 
 	// 生成 JWT Token
 	token, err := GenerateToken(user.ID, user.Username, user.Role)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		lib.Err(c, http.StatusInternalServerError, "生成token失败", err)
 		return
 	}
 
