@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Interview</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/highlight.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/setting.css') }}">
     <script>
         let countdown = {{ countdown_time }};
         let startTime = new Date().getTime(); // 获取当前时间作为开始时间

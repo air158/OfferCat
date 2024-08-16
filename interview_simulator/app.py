@@ -128,8 +128,8 @@ def stream_questions():
     resume_text = session['resume_text']
     interview_id = session['interview_id']
     
-    prompt = "忘记之前的所有内容,只能遵守接下来我要说的话" \
-             "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭" \
+    prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
+             "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭\n" \
              f"**请只给我口语的形式表达的面试题，不要输出其他无关内容**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
              f"岗位名称：{job_title}\n" \
              f"岗位要求：\n{job_description}\n" \
@@ -177,9 +177,17 @@ def stream_questions():
                 print('test:'+test)
                 if test and test != '++' and test != '+\n+':
                     questions.append(question)
-            chunk = chunk.replace('\n','¥¥')
+                    chunk = replace_last_newline(chunk)
+            print('chunk', chunk)
             yield f"data: {chunk}\n\n"
     return Response(stream_with_context(generate()), content_type='text/event-stream')
+def replace_last_newline(string):
+    if '\n' in string:
+        string = string[::-1].replace('\n', '¥¥', 1)[::-1]
+    else:
+        string += '¥¥'
+    string = string.replace('\n', '')
+    return string
 
 @app.route('/stream_answer', methods=['GET'])
 def stream_answer():
