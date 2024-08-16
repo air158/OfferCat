@@ -27,9 +27,13 @@ func ResponseMiddleware() gin.HandlerFunc {
 		var data interface{}
 		if c.Keys != nil {
 			data = c.Keys["data"]
-		}
 
+		}
 		msg := c.Keys["massage"]
+
+		if status == 404 {
+			msg = "Not Found"
+		}
 
 		// 构建统一响应结构体
 		response := Response{

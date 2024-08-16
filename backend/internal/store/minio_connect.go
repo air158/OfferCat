@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -44,8 +45,11 @@ func MinioProfile() (string, string, string, bool) {
 }
 
 func MinioDownloadFile(c *gin.Context, client *minio.Client, bucketName string, objectName string, filePath string) error {
+	// 构建保存路径，将文件存储到当前目录的 tmp 文件夹下
+	tmpFilePath := fmt.Sprintf("tmp/%s", filePath)
+
 	// 从MinIO存储桶中下载文件
-	err := client.FGetObject(c, bucketName, objectName, filePath, minio.GetObjectOptions{})
+	err := client.FGetObject(c, bucketName, objectName, tmpFilePath, minio.GetObjectOptions{})
 	if err != nil {
 		log.Printf("Error downloading file from MinIO: %v", err)
 		lib.Err(c, http.StatusInternalServerError, "从MinIO下载文件失败", err)

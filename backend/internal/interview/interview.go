@@ -10,17 +10,19 @@ import (
 
 // Interview 定义模拟面试的结构体
 type Interview struct {
-	ID             uint      `json:"id" gorm:"primaryKey" form:"id"`
-	UserID         uint      `json:"user_id"`
-	SimulationDate time.Time `json:"simulation_date"`
-	LLMModel       string    `json:"llm_model"`             // 使用的 LLM 模型
-	Performance    string    `json:"performance,omitempty"` // 用户在模拟面试中的表现
-	InterviewRole  string    `json:"interview_role"`        // 面试角色
-	InterviewStyle string    `json:"interview_style"`       // 面试风格
-	FinalSummary   string    `json:"final_summary"`         // 最终评价
-	Type           string    `json:"type"`                  // 模拟面试类型
-	FeedbackID     uint      `json:"feedback_id,omitempty"` // 反馈ID
-	Dialog         string    `json:"dialog_id,omitempty"`   // 对话
+	ID                   uint      `json:"id" gorm:"primaryKey" form:"id"`
+	UserID               uint      `json:"user_id"`
+	SimulationDate       time.Time `json:"simulation_date"`
+	LLMModel             string    `json:"llm_model"`               // 使用的 LLM 模型
+	Performance          string    `json:"performance,omitempty"`   // 用户在模拟面试中的表现
+	InterviewRole        string    `json:"interview_role"`          // 面试角色
+	InterviewStyle       string    `json:"interview_style"`         // 面试风格
+	FinalSummary         string    `json:"final_summary"`           // 最终评价
+	Type                 string    `json:"type"`                    // 模拟面试类型
+	FeedbackID           uint      `json:"feedback_id,omitempty"`   // 反馈ID
+	Dialog               string    `json:"dialog_id,omitempty"`     // 对话
+	TotalDuration        int       `json:"total_duration"`          // 总时长
+	TimeLimitPerQuestion int       `json:"time_limit_per_question"` // 每个问题的时间限制
 }
 
 func CreateSimulatedInterview(c *gin.Context) {

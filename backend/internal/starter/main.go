@@ -47,6 +47,7 @@ func main() {
 	// 登录接口
 	r.POST("/api/login", auth.Login)
 	r.GET("/ping", utils.Ping)
+	r.GET("/api/preset/job/list", job.GetPresetJobList)
 
 	// 开发者使用
 	// 预设岗位添加
@@ -90,7 +91,7 @@ func main() {
 		})
 		protected.POST("/simulation/register", interview.CreateSimulatedInterview)
 		protected.GET("/simulation/:id", interview.GetSimulatedInterview)
-		protected.POST("/simulation/answer", interview.CreateAnswer)
+		protected.POST("/simulation/answer", interview.CreateOrUpdateAnswer)
 
 		// 流代理
 		protected.Any("/:mod/:task/proxy", interview.ProxyLLM("http://localhost:5000", db.DB))
