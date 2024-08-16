@@ -38,6 +38,7 @@ func GetStringFromPDF(c *gin.Context, filePath string) string {
 
 	err = store.MinioDownloadFile(c, client, bucketName, objectName, filePath)
 	if err != nil {
+		log.Printf("Error downloading file from MinIO: %v", err)
 		return "something wrong"
 	}
 
@@ -48,7 +49,7 @@ func GetStringFromPDF(c *gin.Context, filePath string) string {
 	}
 	time.Sleep(3 * time.Second)
 
-	res := getStringFromPDF(filePath)
+	res := getStringFromPDF("tmp/" + filePath)
 	return res
 }
 

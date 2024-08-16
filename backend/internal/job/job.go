@@ -14,6 +14,17 @@ type PresetJob struct {
 	JobDescription string `gorm:"type:text;not null " json:"job_description"`
 }
 
+// GetPresetJobList 获取所有预设的岗位信息
+func GetPresetJobList(c *gin.Context) {
+	var presetJobList []PresetJob
+	if err := db.DB.Find(&presetJobList).Error; err != nil {
+		lib.Err(c, http.StatusInternalServerError, "查询预设信息失败", err)
+		return
+	}
+
+	lib.Ok(c, "获取预设信息成功", presetJobList)
+}
+
 // GetJobs 获取所有岗位信息
 func GetJobs(c *gin.Context, db *gorm.DB) {
 	var jobs []PresetJob
