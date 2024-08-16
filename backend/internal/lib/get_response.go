@@ -6,7 +6,8 @@ import (
 )
 
 func Code(c *gin.Context, code int) {
-	c.Set("code", code)
+	// 设置 HTTP 状态码
+	c.Status(code)
 }
 
 func Msg(c *gin.Context, msg string) {
@@ -48,10 +49,19 @@ func Fail(c *gin.Context, input ...interface{}) {
 		Data(c, input[0])
 	}
 }
+
 func Err(c *gin.Context, code int, msg string, err error) {
 	Code(c, code)
 	Msg(c, msg)
+
+	var errorMsg string
+	if err != nil {
+		errorMsg = err.Error()
+	} else {
+		errorMsg = "Unknown error"
+	}
+
 	Data(c, gin.H{
-		"error": err.Error(),
+		"error": errorMsg,
 	})
 }

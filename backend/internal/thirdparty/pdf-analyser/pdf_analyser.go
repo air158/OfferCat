@@ -84,9 +84,9 @@ func readPdf(path string) (string, error) {
 	httpClient := &http.Client{
 		Timeout: 10 * time.Minute, // 设置为10分钟，你可以根据需要调整
 	}
-	client := tika.NewClient(httpClient, "http://117.72.35.68:9998/")
-	//client := tika.NewClient(httpClient, "http://116.198.207.159:9998")
-	//content, err := client.Parse(context.TODO(), f)
+	//client := tika.NewClient(httpClient, "http://117.72.35.68:9998/")
+	client := tika.NewClient(httpClient, "http://116.198.207.159:9998")
+	//content, err := client.Parse(contextTODO(), f)
 	// 创建带超时的context
 	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Minute)
 	defer cancel()
