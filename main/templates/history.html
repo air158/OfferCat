@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/highlight.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/setting.css') }}">
+</head>
+<body>
+    <h1>面试记录列表</h1>
+    <ul>
+        {% for interview in interviews %}
+        <li><a href="{{ url_for('view_history', interview_id=interview.interview_id) }}">Interview {{ interview.interview_id }}</a></li>
+        {% endfor %}
+    </ul>
+    <form action="/go_back_init">
+        <input type="submit" value="返回简历填写">
+    </form>
+    <form action="/go_back_result">
+        <input type="submit" value="返回面试结果">
+    </form>
+</body>
+</html>

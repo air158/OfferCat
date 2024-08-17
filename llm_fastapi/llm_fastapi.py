@@ -8,8 +8,8 @@ import time
 import asyncio
 
 # 定义模型路径
-model_dir = '/Users/didi/workspace/OfferCat/GPT_tmp/models/IEITYuan/Yuan2-2B-Mars-hf'
-lora_path = '/Users/didi/workspace/OfferCat/GPT_tmp/OfferCat_Yuan2.0-2B_lora_bf16/checkpoint-850'
+model_dir = 'C:/Users/meng/workspace/models/IEITYuan/Yuan2-2B-Mars-hf'
+lora_path = 'C:/Users/meng/workspace/models/OfferCat_Yuan2.0-2B_lora_bf16/checkpoint-850'
 
 # 定义模型数据类型
 torch_dtype = torch.bfloat16  # A10
@@ -38,6 +38,10 @@ def generate_text(prompt: str, max_length: int = 200):
     outputs = model.generate(**inputs, max_new_tokens=max_length)
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
+print('start')
+generated_text = generate_text("你是谁", max_length=200)
+print('generated_text', generated_text)
+
 # 定义一个流式生成函数用于流式回复
 async def stream_generate_text(prompt: str, max_length: int = 200):
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
@@ -46,18 +50,22 @@ async def stream_generate_text(prompt: str, max_length: int = 200):
     
     for token in decoded_output.split():
         # 逐步输出每个 token，模拟流式生成
-        yield json.dumps({"choices": [{"delta": {"content": token}, "finish_reason": None}]}) + "\n"
+        yield json.dumps({"choices": [{"delta": {"content": token}, "finish_reason": None}]}) + "/n"
         await asyncio.sleep(0.1)  # 模拟生成时间
 
     # 结束符标志
-    yield json.dumps({"choices": [{"delta": {}, "finish_reason": "stop"}]}) + "\n"
+    yield json.dumps({"choices": [{"delta": {}, "finish_reason": "stop"}]}) + "/n"
 
 # 普通回复 API 端点
 @app.post("/v1/completions")
 async def completions(request: Request):
-    data = await request.json()
+    try:
+        data = await request.json()
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail="Invalid JSON data in request")
     prompt = data.get("prompt", "")
     max_tokens = data.get("max_tokens", 200)
+    print('prompt ', prompt)
     
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")
@@ -79,6 +87,7 @@ async def streaming_completions(request: Request):
     data = await request.json()
     prompt = data.get("prompt", "")
     max_tokens = data.get("max_tokens", 200)
+    print('prompt ', prompt)
 
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")

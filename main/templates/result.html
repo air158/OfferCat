@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interview Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/highlight.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/setting.css') }}">
+</head>
+<body>
+    <script src="{{ url_for('static', filename='js/ui/marked.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/highlight.min.js') }}"></script>
+    <h1>面试结果</h1>
+    <h2>面试记录</h2>
+    {% for record in records %}
+    <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
+    {% endfor %}
+
+    <h2>面试建议</h2>
+    <div id="ai_suggestions">
+        {% if interview_feedback %}
+        {{ marked.parse(interview_feedback|safe) }}
+        {% else %}
+        猫猫正在思考...
+        {% endif %}
+    </div>
+
+    <form action="/go_back_init">
+        <input type="submit" value="返回简历填写">
+    </form>
+    
+    <form action="/history", method="GET">
+        <input type="submit" value="面试记录">
+    </form>
+    
+
+    <script>
+        {% if not interview_feedback %}
+        var collectedText = ''; // 用于存储所有流式输入内容
+        const eventSource = new EventSource(`/stream_result`);
+        eventSource.onopen = function() {
+            aiAnswerDiv = document.getElementById("ai_suggestions");
+            aiAnswerDiv.innerHTML = "猫猫正在思考...";
+            console.log("Connection opened");
+            collectedText = ''
+        };
+
+        eventSource.onmessage = function(event) {
+            const aiAnswerDiv = document.getElementById("ai_suggestions");
+            if (aiAnswerDiv.innerHTML == "猫猫正在思考...") aiAnswerDiv.innerHTML = "";
+            if (event.data === "[DONE]") {
+                eventSource.close();
+            } else {
+                collectedText += event.data;
+                aiAnswerDiv.innerHTML = marked.parse(collectedText);
+
+                // 使用highlight.js对代码块进行高亮处理
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+        };
+
+        eventSource.onerror = function() {
+            eventSource.close();
+        };
+        {% endif %}
+    </script>
+</body>
+</html>

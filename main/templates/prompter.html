@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OfferCat!</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/highlight.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/setting.css') }}">
+</head>
+<body>
+    
+    <!-- 提示界面 -->
+    <div id="overlay"></div>
+    <div id="tooltip">
+        <br>
+        点击箭头或暗处可关闭提示
+        <br><br>
+        最上面的很多泡泡是语音识别的历史纪录，可以多选
+        <br><br>
+        下方固定位置的泡泡是最新识别出的话
+        <br><br>
+        选择泡泡后点击右下角的提问可向大模型提问
+        <br>
+        
+        <button id="tooltip-close">×</button>
+    </div>
+
+    <div id="upper-section">
+        <div id="bubbles-container"></div>
+        
+    </div>
+    <div id="buttons-container">
+        <div id="interviewer-quesiton"></div>
+    </div>
+
+    <div id="buttons-container">
+        <button id="submit-button">提问</button>
+    </div>
+    
+
+    <div id="info_div">录音关闭</div>
+
+    <div id="lower-section">
+        <div id="response-box">
+            <div id="close-button">&times;</div>
+            <div id="response-content"></div>
+        </div>
+    </div>
+
+    <div id="iphone-padding"></div>
+
+    
+    <script src="{{ url_for('static', filename='js/asr/wss_config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/recorder-core.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/wav.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/pcm.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/asr/wsconnecter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/filemanager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/asr_prompter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/asr_function.js') }}"></script>
+    
+    <script src="{{ url_for('static', filename='js/ui/iphone_padding.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/marked.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/highlight.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/setting.js') }}"></script>
+
+
+    <script src="{{ url_for('static', filename='js/ui/bubbles.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/llm.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/init_record.js') }}"></script>
+
+    <!-- <script>
+        simulateAPI();
+    </script> -->
+
+    <!-- <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+    <script>
+    var vConsole = new window.VConsole();
+    </script> -->
+</body>
+</html>
