@@ -10,27 +10,34 @@
 <body>
     <script src="{{ url_for('static', filename='js/ui/marked.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui/highlight.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/toggletag.js') }}"></script>
+    
     <h1>面试结果</h1>
     <h2>面试记录</h2>
-    {% for record in records %}
-    <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
-    {% endfor %}
+    <button onclick="toggletag('history')" class="test-button">打开/隐藏历史记录</button>
+    <div  id="history"  class="response-box-test">
+        {% for record in records %}
+        <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
+        {% endfor %}
+    </div>
+    
 
     <h2>面试建议</h2>
-    <div id="ai_suggestions">
+    <button onclick="toggletag('ai_suggestions')" class="test-button">打开/隐藏面试建议</button>
+    <div id="ai_suggestions"  class="response-box-test">
         {% if interview_feedback %}
-        {{ marked.parse(interview_feedback|safe) }}
+        {{ interview_feedback|safe }}
         {% else %}
         猫猫正在思考...
         {% endif %}
     </div>
 
     <form action="/go_back_init">
-        <input type="submit" value="返回简历填写">
+        <input type="submit" value="返回简历填写"  class="test-button">
     </form>
     
     <form action="/history", method="GET">
-        <input type="submit" value="面试记录">
+        <input type="submit" value="面试记录"  class="test-button">
     </form>
     
 

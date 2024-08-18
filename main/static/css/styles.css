@@ -24,8 +24,8 @@ body {
     padding: 0;
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
+    /* height: 100vh; */
+    overflow: auto;
 }
 #upper-section {
     flex: 1;
@@ -117,6 +117,19 @@ body {
 
 .textarea:disabled {
     border-color: #aaa;
+}
+.response-box-test {
+    /* position: absolute; */
+    /* top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); */
+    /* width: 80%;
+    height: 80%; */
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    overflow-y: auto;
 }
 #response-box {
     position: absolute;

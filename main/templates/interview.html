@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/highlight.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/setting.css') }}">
+    <script src="{{ url_for('static', filename='js/ui/toggletag.js') }}"></script>
     <script>
         let countdown = {{ countdown_time }};
         let startTime = new Date().getTime(); // 获取当前时间作为开始时间
@@ -47,15 +48,6 @@
             document.getElementById('answerForm').submit(); // 提交表单
             clear();
         }
-
-        function toggletag(tag) { //"history"
-            var historyDiv = document.getElementById(tag);
-            if (historyDiv.style.display === "none") {
-                historyDiv.style.display = "block";
-            } else {
-                historyDiv.style.display = "none";
-            }
-        }
     </script>
 </head>
 <body onload="typeSentence(0)">
@@ -67,19 +59,19 @@
         <textarea id="answer" name="answer" required></textarea><br><br>
         <!-- 隐藏字段用于提交持续时间 -->
         <input type="hidden" id="duration" name="duration">
-        <input type="submit" value="提交" onclick="submitForm(); return false;">
+        <input type="submit"  value="提交" class="test-button" onclick="submitForm(); return false;">
     </form>
     <h2>连接状态</h2>
     <div id="info_div">录音关闭</div>
     
 
     <h2>参考回答</h2>
-    <button onclick="toggletag('ai_answer')">打开/隐藏历史记录</button>
-    <div id="ai_answer" style="display: block;"></div>
+    <button onclick="toggletag('ai_answer')" class="test-button">打开/隐藏参考回答</button>
+    <div id="ai_answer" class="response-box-test" ></div>
 
     <h2>历史记录</h2>
-    <button onclick="toggletag('history')">打开/隐藏历史记录</button>
-    <div id="history" style="display: block;">
+    <button onclick="toggletag('history')" class="test-button">打开/隐藏历史记录</button>
+    <div id="history" class="response-box-test">
         {% for record in history %}
         <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
         {% endfor %}
