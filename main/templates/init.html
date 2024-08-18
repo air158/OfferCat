@@ -11,27 +11,27 @@
     <h1>信息填写&简历上传</h1>
     <form action="/" method="POST">
         <label for="resume_text">点击自动填写:</label><br>
-        <input type="button" value="前端工程师" onclick="autoFillForm()"><br><br>
+        <input type="button" value="前端工程师" onclick="autoFillForm()" class="test-button"><br><br>
 
         <label for="job_title">岗位名称:</label><br>
-        <input type="text" id="job_title" name="job_title"><br><br>
+        <input type="text" id="job_title" name="job_title" class="textarea"><br><br>
         <label for="job_description">岗位描述:</label><br>
-        <textarea id="job_description" name="job_description"></textarea><br><br>
+        <textarea id="job_description" name="job_description" class="textarea"></textarea><br><br>
 
         <label for="pdf_file">上传PDF文件:</label><br>
         <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf"><br><br>
 
         <label for="resume_text">简历信息:</label><br>
-        <textarea id="resume_text" name="resume_text"></textarea><br><br>
-        <input type="submit" value="开始面试！">
+        <textarea id="resume_text" name="resume_text" class="textarea"></textarea><br><br>
+        <input type="submit" value="开始面试！"  class="test-button">
     </form>
 
     
     <form action="/go_back_prompter", method="GET">
-        <input type="submit" value="正式面试提词器">
+        <input type="submit" value="正式面试提词器"  class="test-button">
     </form>
     <form action="/history", method="GET">
-        <input type="submit" value="面试记录">
+        <input type="submit" value="面试记录"  class="test-button">
     </form>
 
     <script>

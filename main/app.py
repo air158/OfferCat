@@ -313,6 +313,19 @@ def stream_result():
 
     return Response(stream_with_context(generate()), content_type='text/event-stream')
 
+def save_record(job_title, question, answer, duration, interview_id):
+    # 保存历史记录
+    record = InterviewRecord(
+        job_title=job_title,
+        question=question,
+        answer=answer,
+        duration=duration,  # 转换为浮点数保存
+        timestamp=time.time(),
+        interview_id=interview_id  # 保存当前面试的ID
+    )
+    db.session.add(record)
+    db.session.commit()
+
 # 面试页面
 @app.route('/interview', methods=['GET', 'POST'])
 def interview():
@@ -323,17 +336,8 @@ def interview():
     if request.method == 'POST':
         answer = request.form['answer']
         duration = request.form['duration']  # 接收前端提交的持续时间
-        # 保存历史记录
-        record = InterviewRecord(
-            job_title=session['job_title'],
-            question=questions[session['idx']],
-            answer=answer,
-            duration=float(duration),  # 转换为浮点数保存
-            timestamp=time.time(),
-            interview_id=interview_id  # 保存当前面试的ID
-        )
-        db.session.add(record)
-        db.session.commit()
+        
+        save_record(session['job_title'], questions[session['idx']], answer, float(duration), interview_id)
 
         session['idx'] += 1
         session.modified = True  # 标记 session 已修改

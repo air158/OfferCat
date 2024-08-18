@@ -73,6 +73,20 @@ body {
     outline: 3px solid #4CAF50;
     outline-offset: 2px;
 }
+.test-button {
+    /* position: absolute;
+    top: 5px;
+    left: 10px; */
+    width:25%;
+    padding: 10px 20px;
+    font-size: 12px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-bottom: 5px;
+}
 #submit-button {
     /* position: absolute;
     top: 50%; */
@@ -87,6 +101,22 @@ body {
     border-radius: 12px;
     cursor: pointer;
     /* display: none; */
+}
+.textarea {
+    /* font-family: "Arial", "Helvetica", "sans-serif";
+    font-size: 14px; */
+    border: 2px solid #ccc;
+    background-color: #f9f9f9;
+    width:25%;
+    /* width: 300px;
+    height: 150px; */
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.textarea:disabled {
+    border-color: #aaa;
 }
 #response-box {
     position: absolute;
