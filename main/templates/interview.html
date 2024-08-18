@@ -52,29 +52,40 @@
 </head>
 <body onload="typeSentence(0)">
     <h1>模拟面试</h1>
-    <p>面试官的问题:<div id="question"></div></p>
-    <p>倒计时: <span id="countdown">{{ countdown_time }}</span> seconds</p>
-    <form id="answerForm" action="/interview" method="POST">
-        <label for="answer">你的回答:</label><br>
-        <textarea id="answer" name="answer" required></textarea><br><br>
-        <!-- 隐藏字段用于提交持续时间 -->
-        <input type="hidden" id="duration" name="duration">
-        <input type="submit"  value="提交" class="test-button" onclick="submitForm(); return false;">
-    </form>
-    <h2>连接状态</h2>
-    <div id="info_div">录音关闭</div>
-    
+    面试用时<div id="info_div">录音关闭</div>
+    <div id="layer-container">
+        <div id="layer3">
+            <p>面试官的问题:<div id="question"></div></p>
+            <p>倒计时: <span id="countdown">{{ countdown_time }}</span> seconds</p>
+            <form id="answerForm" action="/interview" method="POST">
+                <label for="answer">你的回答:</label><br>
+                <textarea id="answer" name="answer" required  class="textarea"></textarea><br><br>
+                <!-- 隐藏字段用于提交持续时间 -->
+                <input type="hidden" id="duration" name="duration">
+                <input type="submit"  value="提交" class="test-button" onclick="submitForm(); return false;">
+            </form>
+        </div>
+        
+        
+        
+        <div id="layer3">
+            <h2>参考回答</h2>
+            <button onclick="toggletag('ai_answer')" class="test-button">打开/隐藏参考回答</button>
+            <div id="ai_answer" class="response-box-test" ></div>
+        </div>
+        
+        <div id="layer3">
+            <h2>历史记录</h2>
+            <button onclick="toggletag('history')" class="test-button">打开/隐藏历史记录</button>
+            <div id="history" class="response-box-test">
+                {% for record in history %}
+                <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
+                {% endfor %}
+            </div>
+        </div>
 
-    <h2>参考回答</h2>
-    <button onclick="toggletag('ai_answer')" class="test-button">打开/隐藏参考回答</button>
-    <div id="ai_answer" class="response-box-test" ></div>
+        
 
-    <h2>历史记录</h2>
-    <button onclick="toggletag('history')" class="test-button">打开/隐藏历史记录</button>
-    <div id="history" class="response-box-test">
-        {% for record in history %}
-        <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
-        {% endfor %}
     </div>
 
     <script src="{{ url_for('static', filename='js/asr/wss_config.js') }}"></script>

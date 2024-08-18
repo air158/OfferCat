@@ -11,7 +11,7 @@
 <body>
     
     <!-- 提示界面 -->
-    <div id="overlay"></div>
+    <!-- <div id="overlay"></div>
     <div id="tooltip">
         <br>
         点击箭头或暗处可关闭提示
@@ -24,29 +24,31 @@
         <br>
         
         <button id="tooltip-close">×</button>
-    </div>
-
-    <div id="upper-section">
-        <div id="bubbles-container"></div>
-        
-    </div>
-    <div id="buttons-container">
-        <div id="interviewer-quesiton"></div>
-    </div>
-
-    <div id="buttons-container">
-        <button id="submit-button">提问</button>
-    </div>
-    
+    </div> -->
 
     <div id="info_div">录音关闭</div>
-
-    <div id="lower-section">
-        <div id="response-box">
-            <div id="close-button">&times;</div>
-            <div id="response-content"></div>
+    <div id="buttons-container">
+        <button id="submit-button">提问</button>
+        <button class="test-button" onclick="window.location.href='/go_back_result'">结束面试</button>
+    </div>
+    
+    <div id="layer-container">
+        <div>
+            <div id="buttons-container">
+                <div id="interviewer-quesiton"></div>
+            </div>
+            <div id="lower-section">
+                <div id="response-box">
+                    <div id="close-button">&times;</div>
+                    <div id="response-content"></div>
+                </div>
+            </div>
+        </div>
+        <div id="upper-section">
+            <div id="bubbles-container"></div>
         </div>
     </div>
+
 
     <div id="iphone-padding"></div>
 

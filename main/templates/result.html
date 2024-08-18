@@ -13,32 +13,37 @@
     <script src="{{ url_for('static', filename='js/ui/toggletag.js') }}"></script>
     
     <h1>面试结果</h1>
-    <h2>面试记录</h2>
-    <button onclick="toggletag('history')" class="test-button">打开/隐藏历史记录</button>
-    <div  id="history"  class="response-box-test">
-        {% for record in records %}
-        <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
-        {% endfor %}
+    <div id="buttons-container">
+        <button class="test-button" onclick="window.location.href='/go_back_init'">返回简历填写</button>
+        <button class="test-button" onclick="window.location.href='/history'">面试记录</button>
     </div>
     
+    <div id="layer-container">
+        <div id="layer2">
+            <h2>面试记录</h2>
+            <button onclick="toggletag('history')" class="test-button">打开/隐藏历史记录</button>
+            <div  id="history"  class="response-box-test">
+                {% for record in records %}
+                <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div id="layer2">
+            <h2>面试建议</h2>
+            <button onclick="toggletag('ai_suggestions')" class="test-button">打开/隐藏面试建议</button>
+            <div id="ai_suggestions"  class="response-box-test">
+                {% if interview_feedback %}
+                {{ interview_feedback|safe }}
+                {% else %}
+                猫猫正在思考...
+                {% endif %}
+            </div>
+        </div>
 
-    <h2>面试建议</h2>
-    <button onclick="toggletag('ai_suggestions')" class="test-button">打开/隐藏面试建议</button>
-    <div id="ai_suggestions"  class="response-box-test">
-        {% if interview_feedback %}
-        {{ interview_feedback|safe }}
-        {% else %}
-        猫猫正在思考...
-        {% endif %}
     </div>
-
-    <form action="/go_back_init">
-        <input type="submit" value="返回简历填写"  class="test-button">
-    </form>
     
-    <form action="/history", method="GET">
-        <input type="submit" value="面试记录"  class="test-button">
-    </form>
+    
     
 
     <script>
@@ -71,6 +76,14 @@
         eventSource.onerror = function() {
             eventSource.close();
         };
+        {% else %}
+        const aiAnswerDiv = document.getElementById("ai_suggestions");
+        var collectedText = aiAnswerDiv.innerHTML;
+        aiAnswerDiv.innerHTML = marked.parse(collectedText);
+        // 使用highlight.js对代码块进行高亮处理
+        document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
         {% endif %}
     </script>
 </body>
