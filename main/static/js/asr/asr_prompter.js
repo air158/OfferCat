@@ -80,27 +80,6 @@ function getConnState( connState ) {
 function simulateAPI() {
     const sentences = [
         "欢迎使用OfferCat!",
-        "你了解transformer的结构吗",
-        "用类写出注意力机制的代码",
-        "如何提高多模态大模型的OCR能力",
-        "写最长回文子串",
-        "这是一个垂直布局的示例",
-        "每个泡泡代表一句语音识别的结果",
-        "您可以上下滑动来查看更多的语音识别结果",
-        "新的泡泡会自动滚动到底部",
-        "如果您向上滚动，新泡泡就不会自动滚动了",
-        "当您自己滚动到底部时，自动滚动功能会恢复",
-        "点击可以选中或取消选中某个泡泡",
-        "拖动可以批量选择或取消多个泡泡",
-        "选中后点击右下角的绿色按钮提交内容",
-        "AI的回答将在下方的弹出框中显示",
-        "这个泡泡用于测试滚动效果",
-        "继续向下滑动可以看到更多的内容",
-        "我们正在测试智能滚动",
-        "滑动是否流畅？自动滚动功能是否正常？",
-        "您可以尝试选择多个泡泡然后提交",
-        "AI会根据您选择的内容给出回应",
-        "这是最后一个泡泡，感谢您的耐心测试"
     ];
 
     sentences.forEach((sentence, index) => {
@@ -108,6 +87,7 @@ function simulateAPI() {
             currentBubble = createBubble();
             typeSentence(currentBubble, sentence, 0);
         }, index * (sentence.length * 50 + 1000));
+        setInterviewerQuesiton(sentence)
     });
 }
 

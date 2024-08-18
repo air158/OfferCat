@@ -58,8 +58,13 @@ def init():
         session['resume_text'] = resume_text
         session['interview_id'] = str(uuid.uuid4())  # 生成一个新的面试ID
 
-        # 调用大模型生成问题
-        return redirect(url_for('question'))
+        action_type = request.form.get('action_type')
+        if action_type == 'simulate':
+            # 处理模拟面试的逻辑
+            return redirect(url_for('question'))
+        elif action_type == 'guide':
+            # 处理正式面试提词器的逻辑
+            return redirect(url_for('prompter'))
 
     return render_template('init.html')
 

@@ -33,20 +33,35 @@
     </div>
     
     <div id="layer-container">
-        <div>
-            <div id="buttons-container">
-                <div id="interviewer-quesiton"></div>
-            </div>
-            <div id="lower-section">
-                <div id="response-box">
-                    <div id="close-button">&times;</div>
-                    <div id="response-content"></div>
+        <div id="layer2">
+            <div id="upper-section">
+                面试官问题
+                <div id="buttons-container">
+                    <div id="interviewer-quesiton"></div>
                 </div>
             </div>
+            <div id="lower-section">
+                <div>
+                    大模型回答
+                </div>
+                
+                <div id="buttons-container">
+                    <div id="response-box">
+                        <div id="close-button">&times;</div>
+                        <div id="response-content"></div>
+                    </div>
+                </div>
+                
+            </div>
         </div>
-        <div id="upper-section">
-            <div id="bubbles-container"></div>
+        <div id="layer2">
+            <div id="upper-section">
+                历史记录
+                <div id="bubbles-container"></div>
+            </div>
         </div>
+
+        
     </div>
 
 
@@ -75,9 +90,9 @@
 
     <script src="{{ url_for('static', filename='js/init_record.js') }}"></script>
 
-    <!-- <script>
+    <script>
         simulateAPI();
-    </script> -->
+    </script>
 
     <!-- <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
     <script>
