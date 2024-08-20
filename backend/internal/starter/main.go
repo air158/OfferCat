@@ -89,9 +89,10 @@ func main() {
 				"role":     role,
 			})
 		})
-		protected.POST("/simulation/register", interview.CreateSimulatedInterview)
+		protected.POST("/interview/register", interview.UpsertPresetAndCreateInterview)
 		protected.GET("/simulation/:id", interview.GetSimulatedInterview)
 		protected.POST("/simulation/answer", interview.CreateOrUpdateAnswer)
+		protected.GET("/interview/question", interview.GetQuestionIdByInterviewId)
 
 		// 流代理
 		protected.Any("/:mod/:task/proxy", interview.ProxyLLM("http://localhost:5000", db.DB))

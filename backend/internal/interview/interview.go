@@ -1,10 +1,13 @@
 package interview
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"net/http"
 	"offercat/v0/internal/db"
 	"offercat/v0/internal/lib"
+	"reflect"
 	"time"
 )
 
@@ -21,8 +24,23 @@ type Interview struct {
 	Type                 string    `json:"type"`                    // 模拟面试类型
 	FeedbackID           uint      `json:"feedback_id,omitempty"`   // 反馈ID
 	Dialog               string    `json:"dialog_id,omitempty"`     // 对话
-	TotalDuration        int       `json:"total_duration"`          // 总时长
 	TimeLimitPerQuestion int       `json:"time_limit_per_question"` // 每个问题的时间限制
+}
+
+type RegisterRequest struct {
+	JobTitle       string `json:"job_title"`
+	JobDescription string `json:"job_description"`
+	Company        string `json:"company"`
+	Business       string `json:"business"`
+	Location       string `json:"location"`
+	Progress       string `json:"progress"`  // 第几面
+	ResumeID       uint   `json:"resume_id"` // 简历ID，会另外上传
+	Language       string `json:"language"`
+	InterviewStyle string `json:"interview_style"`
+
+	InterviewRole        string `json:"interview_role"`          // 面试角色
+	Type                 string `json:"type"`                    // 模拟面试类型
+	TimeLimitPerQuestion int    `json:"time_limit_per_question"` // 每个问题的时间限制
 }
 
 func CreateSimulatedInterview(c *gin.Context) {
@@ -42,6 +60,79 @@ func CreateSimulatedInterview(c *gin.Context) {
 	}
 
 	lib.Ok(c, "保存模拟面试信息成功", entity)
+}
+
+func UpsertPresetAndCreateInterview(c *gin.Context) {
+	var inputPreset Preset
+	var registerRequest RegisterRequest
+	if err := c.ShouldBindJSON(&registerRequest); err != nil {
+		lib.Err(c, http.StatusBadRequest, "解析用户预设信息失败，可能是不合法的输入", err)
+		return
+	}
+	uidInt := lib.Uid(c)
+
+	inputPreset = Preset{
+		JobTitle:       registerRequest.JobTitle,
+		JobDescription: registerRequest.JobDescription,
+		Company:        registerRequest.Company,
+		Business:       registerRequest.Business,
+		Location:       registerRequest.Location,
+		Progress:       registerRequest.Progress,
+		ResumeID:       registerRequest.ResumeID,
+		Language:       registerRequest.Language,
+		InterviewStyle: registerRequest.InterviewStyle,
+	}
+
+	var existingPreset Preset
+	// 在数据库中查找该用户的预设信息
+	if err := db.DB.Where("user_id = ?", uidInt).First(&existingPreset).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// 用户没有现有的预设信息，创建新的
+			existingPreset = Preset{
+				UserID: uidInt,
+			}
+		} else {
+			// 其他错误，返回错误响应
+			lib.Err(c, http.StatusInternalServerError, "查询预设信息失败", err)
+			return
+		}
+	}
+
+	// 使用反射自动更新非零值的字段
+	inputValue := reflect.ValueOf(&inputPreset).Elem()
+	existingValue := reflect.ValueOf(&existingPreset).Elem()
+
+	for i := 0; i < inputValue.NumField(); i++ {
+		inputField := inputValue.Field(i)
+		if !inputField.IsZero() {
+			existingValue.Field(i).Set(inputField)
+		}
+	}
+
+	// 保存或更新预设信息
+	if err := db.DB.Save(&existingPreset).Error; err != nil {
+		lib.Err(c, http.StatusInternalServerError, "保存预设信息失败", err)
+		return
+	}
+	interview := Interview{
+		UserID:               uint(lib.Uid(c)),
+		SimulationDate:       time.Now(),
+		InterviewRole:        registerRequest.InterviewRole,
+		InterviewStyle:       registerRequest.InterviewStyle,
+		Type:                 registerRequest.Type,
+		TimeLimitPerQuestion: registerRequest.TimeLimitPerQuestion,
+	}
+	// 将模拟面试信息保存到数据库
+	if err := db.DB.Create(&interview).Error; err != nil {
+		lib.Err(c, http.StatusInternalServerError, "保存模拟面试信息失败", err)
+		return
+	}
+
+	lib.Ok(c, "保存预设信息成功", gin.H{
+		"preset":    existingPreset,
+		"interview": interview,
+	})
+
 }
 
 func GetSimulatedInterview(c *gin.Context) {

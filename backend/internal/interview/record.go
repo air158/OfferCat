@@ -10,12 +10,13 @@ import (
 
 type QueryInterviewResultRequest struct {
 	InterviewID uint `json:"interview_id" binding:"required"`
+	QuestionID  uint `json:"question_id" binding:"required"`
 }
 
-type InterviewResultResponse struct {
-	QuestionContent string `json:"question_content"`
-	UserAnswer      string `json:"user_answer"`
-	LLMAnswer       string `json:"llm_answer"`
+type ResultResponse struct {
+	QuestionBranchID uint   `json:"question_branch_id"`
+	UserAnswer       string `json:"user_answer"`
+	LLMAnswer        string `json:"llm_answer"`
 }
 
 func QueryInterviewResult(db *gorm.DB) gin.HandlerFunc {
@@ -45,21 +46,21 @@ func QueryInterviewResult(db *gorm.DB) gin.HandlerFunc {
 
 		// 查询对应的答案
 		var answers []Answer
-		if err := db.Where("interview_id = ?", req.InterviewID).Find(&answers).Error; err != nil {
+		if err := db.Where("question_id = ?", req.QuestionID).Find(&answers).Error; err != nil {
 			log.Println("Error fetching answers:", err)
 			lib.Err(c, http.StatusInternalServerError, "获取答案失败", err)
 			return
 		}
 
 		// 组装结果
-		var results []InterviewResultResponse
+		var results []ResultResponse
 		for _, question := range questions {
 			for _, answer := range answers {
 				if question.ID == answer.QuestionID {
-					result := InterviewResultResponse{
-						QuestionContent: question.Content,
-						UserAnswer:      answer.Content,
-						LLMAnswer:       answer.LLMAnswer,
+					result := ResultResponse{
+						QuestionBranchID: answer.QuestionBranchID,
+						UserAnswer:       answer.Content,
+						LLMAnswer:        answer.LLMAnswer,
 					}
 					results = append(results, result)
 				}
@@ -68,7 +69,8 @@ func QueryInterviewResult(db *gorm.DB) gin.HandlerFunc {
 
 		// 返回结果
 		lib.Ok(c, "获取面试结果成功", gin.H{
-			"results": results,
+			"question_content": questions[0].Content,
+			"answers":          results,
 		})
 	}
 }

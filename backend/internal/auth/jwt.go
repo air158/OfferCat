@@ -12,7 +12,8 @@ type Claims struct {
 	UserID   uint   `json:"user_id"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
-	jwt.StandardClaims
+	// StandardClaims 已经弃用，使用 RegisteredClaims
+	jwt.RegisteredClaims
 }
 
 // 生成 JWT Token
@@ -24,10 +25,10 @@ func GenerateToken(userID uint, username, role string) (string, error) {
 		UserID:   userID,
 		Username: username,
 		Role:     role,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expireTime.Unix(),
-			IssuedAt:  now.Unix(),
-			Issuer:    "offercat", // 替换为你的应用名
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expireTime), // 转换为 *NumericDate
+			IssuedAt:  jwt.NewNumericDate(now),        // 转换为 *NumericDate
+			Issuer:    "offercat",
 		},
 	}
 

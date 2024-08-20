@@ -24,18 +24,19 @@ import (
 
 // Preset 面试前的预设，包括岗位信息、简历和偏好设置
 type Preset struct {
-	ID               int    `json:"id" gorm:"primaryKey"`
-	UserID           int    `json:"-"`
-	JobTitle         string `json:"job_title"`
-	JobDescription   string `json:"job_description"`
-	Company          string `json:"company"`
-	Business         string `json:"business"`
-	Location         string `json:"location"`
-	Progress         string `json:"progress"`  // 第几面
-	ResumeID         string `json:"resume_id"` // 简历ID，会另外上传
-	Language         string `json:"language"`
-	InterviewerStyle string `json:"interviewer_style"`
-	AnswerLength     int    `json:"answer_length"`
+	ID             int    `json:"id" gorm:"primaryKey"`
+	UserID         int    `json:"-"`
+	JobTitle       string `json:"job_title"`
+	JobDescription string `json:"job_description"`
+	Company        string `json:"company"`
+	Business       string `json:"business"`
+	Location       string `json:"location"`
+	Progress       string `json:"progress"`  // 第几面
+	ResumeID       uint   `json:"resume_id"` // 简历ID，会另外上传
+	Language       string `json:"language"`
+	InterviewStyle string `json:"interview_style"`
+	AnswerLength   int    `json:"answer_length"`
+	QuestionLength int    `json:"question_length"`
 }
 
 // UpsertPreset 更新用户的预设信息
@@ -165,7 +166,7 @@ func UploadResumePDF(c *gin.Context) {
 
 	// 准备更新的Preset数据
 	presetUpdate := Preset{
-		ResumeID: objectName,
+		ResumeID: resumeEntity.ID,
 	}
 	log.Println("Preset update data prepared")
 
@@ -188,6 +189,7 @@ func UploadResumePDF(c *gin.Context) {
 	if c.Writer.Status() == http.StatusOK {
 		log.Println("Preset updated successfully, sending response")
 		lib.Ok(c, "文件上传成功", gin.H{
+			"id":  resumeEntity.ID,
 			"url": fmt.Sprintf("%s/%s/%s", endpoint, bucketName, objectName),
 		})
 	} else {
@@ -233,6 +235,10 @@ func ResumeSuggestion(c *gin.Context) {
 	path := resumeEntity.FilePath
 	// 从MinIO下载简历文件
 	stringFromPDF := pdf_analyser.GetStringFromPDF(c, path)
+	if stringFromPDF == "something wrong" {
+		lib.Err(c, http.StatusInternalServerError, "提取PDF文件失败", nil)
+		return
+	}
 	prompt := "上面是一份简历，请为这份简历提供建议"
 	// 调用Spark API
 	response, err := llm.CallSparkAPI(stringFromPDF + prompt)

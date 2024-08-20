@@ -17,7 +17,9 @@ func FormatInterviewResult(db *gorm.DB, interviewID uint) (string, error) {
 		return "", err
 	}
 
-	if err := db.Where("interview_id = ?", interviewID).Find(&answers).Error; err != nil {
+	questionId := GetQuestionIdByInterviewId1(interviewID)
+	// 查询对应的答案
+	if err := db.Where("question_id = ?", questionId).Find(&answers).Error; err != nil {
 		log.Println("Error fetching answers:", err)
 		return "", err
 	}
