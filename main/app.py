@@ -36,6 +36,14 @@ def allowed_file(filename):
 
 db.init_app(app)
 
+#这个是阿里云服务器的ssl证书注册文件
+@app.route('/.well-known/pki-validation/B805A860A67DC25F8D2B06146E189A02.txt')
+def serve_validation_file():
+    # 假设你的文件位于项目根目录下的 `.well-known/pki-validation/` 文件夹中
+    directory = '.well-known/pki-validation'
+    filename = 'B805A860A67DC25F8D2B06146E189A02.txt'
+    return send_from_directory(directory, filename)
+
 # 初始化页面，开始新的面试
 @app.route('/', methods=['GET', 'POST'])
 def init():
@@ -50,8 +58,13 @@ def init():
         session['resume_text'] = resume_text
         session['interview_id'] = str(uuid.uuid4())  # 生成一个新的面试ID
 
-        # 调用大模型生成问题
-        return redirect(url_for('question'))
+        action_type = request.form.get('action_type')
+        if action_type == 'simulate':
+            # 处理模拟面试的逻辑
+            return redirect(url_for('question'))
+        elif action_type == 'guide':
+            # 处理正式面试提词器的逻辑
+            return redirect(url_for('prompter'))
 
     return render_template('init.html')
 
@@ -118,6 +131,37 @@ def stream_response(url, headers, data):
                     yield content
                 except (KeyError, json.JSONDecodeError):
                     pass
+
+@app.route('/stream', methods=['POST'])
+def stream():
+    job_title = session['job_title']
+    job_description = session['job_description']
+    resume_text = session['resume_text']
+
+    current_question = request.form['user_input']
+
+    # prompt = f"岗位名称：{job_title}\n" \
+    #          f"岗位要求：\n{job_description}\n" \
+    #          f"面试者简历：\n{resume_text}\n" \
+    #          f"面试官的面试题：\n{current_question}\n" \
+    #          f"\n你是这个 {job_title} 岗位的面试者，请依据 岗位要求 和 面试者简历 回答 面试官的面试题，需要简洁有条理并且重点信息加粗\n" \
+
+    prompt = f"岗位名称：{job_title}\n" \
+             f"面试官的面试题：\n{current_question}\n" \
+             f"\n你是这个 {job_title} 岗位的面试者，请回答 面试官的面试题，需要简洁有条理并且重点信息加粗\n" \
+
+    headers = {
+        'Authorization': f'Bearer {chat_key}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        "model": chat_model,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "stream": True
+    }
+    return Response(stream_with_context(stream_response(chat_url, headers, data)), content_type='text/event-stream')
 
 @app.route('/stream_questions', methods=['GET','POST'])
 def stream_questions():
@@ -195,7 +239,13 @@ def stream_answer():
 
     current_question = request.args.get('question')
 
-    prompt = f"你是{job_title}岗位的面试者，请对面试官的问题提供包含重要信息简单的解答，需要有条理并且重点信息加粗：\n{current_question}"
+    # prompt = f"你是{job_title}岗位的面试者，请对面试官的问题提供包含重要信息简单的解答，需要有条理并且重点信息加粗：\n{current_question}"
+    prompt = f"岗位名称：{job_title}\n" \
+             f"岗位要求：\n{job_description}\n" \
+             f"面试者简历：\n{resume_text}\n" \
+             f"面试官的面试题：\n{current_question}\n" \
+             f"\n你是这个 {job_title} 岗位的面试者，请依据 岗位要求 和 面试者简历 回答 面试官的面试题，需要简洁有条理并且重点信息加粗\n" \
+
 
     headers = {
         'Authorization': f'Bearer {chat_key}',
@@ -268,6 +318,19 @@ def stream_result():
 
     return Response(stream_with_context(generate()), content_type='text/event-stream')
 
+def save_record(job_title, question, answer, duration, interview_id):
+    # 保存历史记录
+    record = InterviewRecord(
+        job_title=job_title,
+        question=question,
+        answer=answer,
+        duration=duration,  # 转换为浮点数保存
+        timestamp=time.time(),
+        interview_id=interview_id  # 保存当前面试的ID
+    )
+    db.session.add(record)
+    db.session.commit()
+
 # 面试页面
 @app.route('/interview', methods=['GET', 'POST'])
 def interview():
@@ -278,17 +341,8 @@ def interview():
     if request.method == 'POST':
         answer = request.form['answer']
         duration = request.form['duration']  # 接收前端提交的持续时间
-        # 保存历史记录
-        record = InterviewRecord(
-            job_title=session['job_title'],
-            question=questions[session['idx']],
-            answer=answer,
-            duration=float(duration),  # 转换为浮点数保存
-            timestamp=time.time(),
-            interview_id=interview_id  # 保存当前面试的ID
-        )
-        db.session.add(record)
-        db.session.commit()
+        
+        save_record(session['job_title'], questions[session['idx']], answer, float(duration), interview_id)
 
         session['idx'] += 1
         session.modified = True  # 标记 session 已修改
@@ -342,6 +396,10 @@ def history():
     interviews = InterviewRecord.query.with_entities(InterviewRecord.interview_id).distinct().all()
     return render_template('history.html', interviews=interviews)
 
+@app.route('/prompter')
+def prompter():
+    return render_template('prompter.html')
+
 @app.route('/history/<interview_id>', methods=['GET'])
 def view_history(interview_id):
     records = InterviewRecord.query.filter_by(interview_id=interview_id).all()
@@ -360,6 +418,9 @@ def go_back_result():
 @app.route('/go_back_history')
 def go_back_history():
     return redirect(url_for('history'))
+@app.route('/go_back_prompter')
+def go_back_prompter():
+    return redirect(url_for('prompter'))
 @app.route('/go_back_question')
 def go_back_question():
     return redirect(url_for('question'))
@@ -384,4 +445,18 @@ def get_data():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+
+    # 默认
     app.run(debug=True)
+
+    # #https
+    # # 这里设置SSL证书和密钥文件的路径
+    # context = ('/etc/ssl/certificate.crt', '/etc/ssl/private/private.key')
+    # app.run(host='0.0.0.0', port=443, ssl_context=context)
+
+    # context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    # context.load_cert_chain(certfile='ssl/cert.pem', keyfile='ssl/key.pem', password=ssl_password)  # 替换为您的密码
+    # app.run(host='0.0.0.0', port=443, debug=True, ssl_context=context)
+
+    # http
+    # app.run(host='0.0.0.0', port=80, debug=True)

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/highlight.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/setting.css') }}">
+    <script src="{{ url_for('static', filename='js/ui/toggletag.js') }}"></script>
+    <script>
+        let countdown = {{ countdown_time }};
+        let startTime = new Date().getTime(); // 获取当前时间作为开始时间
+        let interval;
+
+        function typeSentence(charIndex) {
+            sentence = "{{ question }}"
+            if (charIndex < sentence.length) {
+                document.getElementById("question").innerHTML = sentence.slice(0, charIndex + 1);
+                setTimeout(() => {
+                    typeSentence(charIndex + 1);
+                }, 50);  // 逐字显示的时间间隔
+            } else {
+                document.getElementById("question").innerHTML = sentence;
+                startCountdown();
+            }
+        }
+
+
+        function startCountdown() {
+            const countdownElement = document.getElementById('countdown');
+            interval = setInterval(() => {
+                countdown -= 1;
+                countdownElement.textContent = countdown;
+
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    submitForm();  // 倒计时结束后自动提交表单
+                }
+            }, 1000);
+        }
+
+        function submitForm() {
+            let endTime = new Date().getTime(); // 获取当前时间作为结束时间
+            let duration = (endTime - startTime) / 1000; // 计算持续时间，单位为秒
+
+            document.getElementById('duration').value = duration; // 设置隐藏字段的值
+            clearInterval(interval); // 防止双重提交
+            document.getElementById('answerForm').submit(); // 提交表单
+            clear();
+        }
+    </script>
+</head>
+<body onload="typeSentence(0)">
+    <h1>模拟面试</h1>
+    面试用时<div id="info_div">录音关闭</div>
+    <div id="layer-container">
+        <div id="layer3">
+            <p>面试官的问题:<div id="question"></div></p>
+            <p>倒计时: <span id="countdown">{{ countdown_time }}</span> seconds</p>
+            <form id="answerForm" action="/interview" method="POST">
+                <label for="answer">你的回答:</label><br>
+                <textarea id="answer" name="answer" required  class="textarea"></textarea><br><br>
+                <!-- 隐藏字段用于提交持续时间 -->
+                <input type="hidden" id="duration" name="duration">
+                <input type="submit"  value="提交" class="test-button" onclick="submitForm(); return false;">
+            </form>
+        </div>
+        
+        
+        
+        <div id="layer3">
+            <h2>参考回答</h2>
+            <button onclick="toggletag('ai_answer')" class="test-button">打开/隐藏参考回答</button>
+            <div id="ai_answer" class="response-box-test" ></div>
+        </div>
+        
+        <div id="layer3">
+            <h2>历史记录</h2>
+            <button onclick="toggletag('history')" class="test-button">打开/隐藏历史记录</button>
+            <div id="history" class="response-box-test">
+                {% for record in history %}
+                <p><strong>{{ record.question }}</strong><br>{{ record.answer }}<br>Time: {{ record.duration }} seconds</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        
+
+    </div>
+
+    <script src="{{ url_for('static', filename='js/asr/wss_config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/recorder-core.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/wav.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/pcm.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/asr/wsconnecter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/filemanager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/asr.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asr/asr_function.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/ui/marked.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/highlight.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/init_record.js') }}"></script>
+
+    <script>
+        var collectedText = ''; // 用于存储所有流式输入内容
+        const question = encodeURIComponent("{{ question }}");  // 获取当前问题
+        const eventSource = new EventSource(`/stream_answer?question=${question}`);
+
+        eventSource.onopen = function() {
+            const aiAnswerDiv = document.getElementById("ai_answer");
+            aiAnswerDiv.innerHTML = "猫猫正在思考...";
+            console.log("EventSource connected");
+            collectedText = ''
+        };
+
+        eventSource.onmessage = function(event) {
+            const aiAnswerDiv = document.getElementById("ai_answer");
+            if (aiAnswerDiv.innerHTML == "猫猫正在思考...") aiAnswerDiv.innerHTML = "";
+            if (event.data === "[DONE]") {
+                eventSource.close();
+            } else {
+                collectedText += event.data;
+                aiAnswerDiv.innerHTML = marked.parse(collectedText);
+
+                // 使用highlight.js对代码块进行高亮处理
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+        };
+
+        eventSource.onerror = function() {
+            eventSource.close();
+        };
+    </script>
+    
+</body>
+</html>

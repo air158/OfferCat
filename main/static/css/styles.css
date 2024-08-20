@@ -1,0 +1,252 @@
+
+#container {
+    width: 80%; /* 容器的宽度 */
+    height: 200px; /* 容器的高度 */
+    border: 1px solid #ccc; /* 添加边框 */
+    padding: 10px; /* 内边距 */
+    box-sizing: border-box; /* 包括内边距和边框在内的盒模型 */
+    overflow-y: auto; /* 垂直方向溢出时出现滚动条 */
+    background-color: #ffffff; /* 背景颜色 */
+    position: relative; /* 设置定位，以便子元素能够正确显示 */
+}
+
+.inner-div {
+    margin-bottom: 10px; /* 内部 div 之间的间距 */
+    padding: 10px; /* 内部 div 的内边距 */
+    border: 1px solid #ddd; /* 内部 div 的边框 */
+    background-color: #3e3e3e; /* 内部 div 的背景颜色 */
+    color: white; /* 内部 div 的文字颜色 */
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    /* height: 100vh; */
+    overflow: auto;
+}
+#upper-section {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background-color: #f0f0f0;
+    /* width: 40vw; */
+}
+#lower-section {
+    /* height: 50%; */
+    /* position: relative; */
+    background-color: #f0f0f0;
+    /* background-color: rgba(0, 0, 0, 0); */
+    display: none;
+    overflow-y: auto;
+    align-items: center;
+    /* width: 40vw; */
+}
+#iphone-padding {
+    padding-bottom: 12vh; /* 增加底部内边距，确保按钮不被遮挡 */
+    display: none;
+}
+#bubbles-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+}
+.bubble {
+    background-color: #ffffff;
+    border-radius: 20px;
+    padding: 15px 20px;
+    margin: 10px 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    user-select: none;
+    width: 80%;
+    text-align: left;
+    position: relative; /* 设置定位以便相对位置 */
+}
+.bubble:hover {
+    transform: scale(1.02);
+}
+.bubble.selected {
+    outline: 3px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+#pdf_file {
+    padding: 10px 20px;
+    font-size: 12px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-bottom: 5px;
+    display: inline-block;
+    text-align: center;
+    overflow: auto;
+}
+
+#pdf_file::-webkit-file-upload-button {
+    visibility: hidden;
+}
+
+#pdf_file::before {
+    content: '上传简历';
+    display: inline-block;
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+#pdf_file:hover::before {
+    background-color: #0056b3;
+}
+
+.test-button {
+    /* position: absolute;
+    top: 5px;
+    left: 10px; */
+    /* width:25%; */
+    padding: 10px 20px;
+    font-size: 12px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-bottom: 5px;
+}
+.test-button:disabled {
+    border-color: #aaa;
+    background-color: #656565;
+}
+#submit-button {
+    /* position: absolute;
+    top: 50%; */
+    /* transform: translateY(-50%); */
+    /* bottom: 20px;
+    right: 20px; */
+    width: 35%;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-bottom: 5px;
+    /* display: none; */
+}
+.text {
+    /* font-family: "Arial", "Helvetica", "sans-serif";
+    font-size: 14px; */
+    border: 2px solid #ccc;
+    background-color: #f9f9f9;
+    /* height: 10vh; */
+    /* width: 55vw; */
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.text:disabled {
+    border-color: #aaa;
+}
+.textarea {
+    /* font-family: "Arial", "Helvetica", "sans-serif";
+    font-size: 14px; */
+    border: 2px solid #ccc;
+    background-color: #f9f9f9;
+    height: 10vh;
+    width: 80%;
+    /* width: 55vw; */
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.textarea:disabled {
+    border-color: #aaa;
+}
+.response-box-test {
+    /* position: absolute; */
+    /* top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); */
+    width: 100% ;
+    /* height: 80%; */
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    overflow-y: auto;
+}
+#response-box {
+    /* position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); */
+    width: 80%;
+    height: 80%;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    overflow-y: auto;
+}
+#response-content {
+    height: 100%;
+}
+#close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+    font-size: 20px;
+}
+#layer2 {
+    width: 40vw;
+}
+#layer3 {
+    width: 25vw;
+}
+#layer-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; 
+    gap: 5vw; /* Adds space between the buttons */
+    width: 100vw;
+    /* height: 60px;  */
+}
+
+#buttons-container {
+    display: flex;
+    justify-content: center; /* Centers the buttons horizontally */
+    align-items: center; /* Centers the buttons vertically */
+    gap: 20px; /* Adds space between the buttons */
+    width: 100%; /* Ensures the container takes the full width of its parent */
+    /* height: 60px;  */
+}
+#interviewer-quesiton {
+    background-color: #ffffffef;
+    border-radius: 20px;
+    padding: 15px 15px;
+    /* margin: 10px 0; */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.186);
+    user-select: none;
+    /* width: 80%; */
+    text-align: left;
+    width: 100%;
+
+    display: none;
+}
