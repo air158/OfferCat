@@ -23,7 +23,7 @@ git clone https://github.com/air158/OfferCat.git
 ```
 conda create -n offercat python=3.11
 conda activate offercat
-pip install requests Flask
+pip install requests Flask Flask-SQLAlchemy Werkzeug
 ```
 # 使用
 ## 启动服务器
