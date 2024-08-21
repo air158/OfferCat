@@ -70,7 +70,7 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		// 添加 "chat_key" 字段
 		requestData["chat_key"] = fmt.Sprintf("%s:%s", viper.GetString("spark.apiKey"), viper.GetString("spark.apiSecret"))
 		log.Println("Modified request data:", requestData) // 添加日志
-		promptText := requestData["prompt_text"]
+
 		if task == "result" {
 			requestData["prompt_text"], err = FormatInterviewResult(db, uint(requestData["interview_id"].(float64)))
 			if err != nil {
@@ -87,6 +87,7 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 			}
 			requestData["job_title"] = preset.JobTitle
 		}
+		promptText := requestData["prompt_text"]
 
 		// 将加工后的JSON重新编码为字节数组
 		modifiedBodyBytes, err := json.Marshal(requestData)
@@ -185,21 +186,59 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		completeData = finalBuilder.String()
 
 		if task == "question" {
-			question := Question{
-				// 这个id注意前端json里面要用数字形式传进来
-				InterviewID: (uint)(requestData["interview_id"].(float64)),
-				UserID:      uint(lib.Uid(c)),
-				Content:     completeData,
-				CreatedAt:   time.Now(),
-				UpdatedAt:   time.Now(),
-			}
-			err = CreateQuestion(question)
+			var question Question
+
+			// Check if a question with the same InterviewID already exists
+			err = db.Where("interview_id = ? AND user_id = ?", (uint)(requestData["interview_id"].(float64)), uint(lib.Uid(c))).First(&question).Error
+
 			if err != nil {
-				log.Println("Failed to save question to database:", err)
+				if err == gorm.ErrRecordNotFound {
+					// If the record is not found, create a new question
+					question = Question{
+						InterviewID: (uint)(requestData["interview_id"].(float64)),
+						UserID:      uint(lib.Uid(c)),
+						Content:     completeData,
+						CreatedAt:   time.Now(),
+						UpdatedAt:   time.Now(),
+					}
+					err = CreateQuestion(question)
+					if err != nil {
+						log.Println("Failed to save question to database:", err)
+					} else {
+						log.Println("Question saved to database")
+					}
+				} else {
+					log.Println("Failed to check for existing question:", err)
+				}
 			} else {
-				log.Println("Question saved to database")
+				// If the record is found, update the existing question
+				question.Content = completeData
+				question.UpdatedAt = time.Now()
+
+				err = db.Save(&question).Error
+				if err != nil {
+					log.Println("Failed to update question in database:", err)
+				} else {
+					log.Println("Question updated in database")
+				}
+			}
+
+			var preset Preset
+			// Save the question length to the database
+			err = db.Where("user_id=?", lib.Uid(c)).First(&preset).Error
+			if err != nil {
+				log.Println("Failed to retrieve preset from database:", err)
+			} else {
+				preset.QuestionLength = (int)(requestData["ques_len"].(float64))
+				err = db.Save(&preset).Error
+				if err != nil {
+					log.Println("Failed to save question length to database:", err)
+				} else {
+					log.Println("Question length saved to database")
+				}
 			}
 		}
+
 		if task == "llm-answer" {
 			questionBranchID := (uint)(requestData["question_branch_id"].(float64))
 			questionID := (uint)(requestData["question_id"].(float64))
