@@ -27,7 +27,7 @@ pip install requests Flask Flask-SQLAlchemy Werkzeug
 ```
 # 使用
 ## 启动服务器
-启动服务器后，本机通过https://127.0.0.1访问
+启动服务器后，本机通过 http://127.0.0.1:5000 访问
 ```
 cd OfferCat/main
 python ./app.py
