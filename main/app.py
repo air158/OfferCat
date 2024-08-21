@@ -13,15 +13,10 @@ countdown_time = 20
 #面试题数量
 ques_len = 4
 
-chat_api_key = os.getenv('SPARK_API_KEY')
-chat_api_secret = os.getenv('SPARK_API_SECRET')
-
-chat_key = f'{chat_api_key}:{chat_api_secret}'
-chat_model = 'generalv3.5'
-
-print('chat_key ', chat_key)
-
-chat_url = 'https://spark-api-open.xf-yun.com/v1/chat/completions'
+chat_url = 'http://101.201.82.35:10097/v1/completions'
+headers = {
+    "Content-Type": "application/json",
+}
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -127,8 +122,10 @@ def stream_response(url, headers, data):
             else:
                 try:
                     json_data = json.loads(decoded_line[6:])
-                    content = json_data['choices'][0]['delta']['content']
-                    yield content
+                    # content = json_data['choices'][0]['delta']['content']
+                    content = json_data.get("choices", [{}])[0].get("text", "")
+                    if content:
+                        yield content
                 except (KeyError, json.JSONDecodeError):
                     pass
 
@@ -148,18 +145,18 @@ def stream():
 
     prompt = f"岗位名称：{job_title}\n" \
              f"面试官的面试题：\n{current_question}\n" \
-             f"\n你是这个 {job_title} 岗位的面试者，请回答 面试官的面试题，需要简洁有条理并且重点信息加粗\n" \
+             f"\n你是这个 {job_title} 岗位的面试者，请回答 面试官的面试题，需要简洁有条理并且重点信息加粗<sep>" \
 
-    headers = {
-        'Authorization': f'Bearer {chat_key}',
-        'Content-Type': 'application/json'
-    }
     data = {
-        "model": chat_model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "stream": True
+        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "prompt": prompt,
+        "max_tokens": 256,
+        "temperature": 1,
+        "use_beam_search": False,
+        "top_p": 0,
+        "top_k": 1,
+        "stop": "<eod>",
+        "stream": True  # 启用流式传输
     }
     return Response(stream_with_context(stream_response(chat_url, headers, data)), content_type='text/event-stream')
 
@@ -177,19 +174,19 @@ def stream_questions():
              f"岗位要求：\n{job_description}\n" \
              f"面试者简历：\n{resume_text}\n" \
              f"\n你是这个 {job_title} 岗位的面试官，请依据 岗位要求 和 面试者简历 为面试者给出 {str(ques_len)} 道面试题。\n" \
-             f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。\n" \
+             f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。<sep>" \
     
     print('prompt', prompt)
-    headers = {
-        'Authorization': f'Bearer {chat_key}',
-        'Content-Type': 'application/json'
-    }
     data = {
-        "model": chat_model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "stream": True
+        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "prompt": prompt,
+        "max_tokens": 256,
+        "temperature": 1,
+        "use_beam_search": False,
+        "top_p": 0,
+        "top_k": 1,
+        "stop": "<eod>",
+        "stream": True  # 启用流式传输
     }
 
     questions = []
@@ -244,20 +241,20 @@ def stream_answer():
              f"岗位要求：\n{job_description}\n" \
              f"面试者简历：\n{resume_text}\n" \
              f"面试官的面试题：\n{current_question}\n" \
-             f"\n你是这个 {job_title} 岗位的面试者，请依据 岗位要求 和 面试者简历 回答 面试官的面试题，需要简洁有条理并且重点信息加粗\n" \
+             f"\n你是这个 {job_title} 岗位的面试者，请依据 岗位要求 和 面试者简历 回答 面试官的面试题，需要简洁有条理并且重点信息加粗<sep>" \
 
-
-    headers = {
-        'Authorization': f'Bearer {chat_key}',
-        'Content-Type': 'application/json'
-    }
     data = {
-        "model": chat_model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "stream": True
+        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "prompt": prompt,
+        "max_tokens": 256,
+        "temperature": 1,
+        "use_beam_search": False,
+        "top_p": 0,
+        "top_k": 1,
+        "stop": "<eod>",
+        "stream": True  # 启用流式传输
     }
+
 
     def generate():
         for chunk in stream_response(chat_url, headers, data):
@@ -287,7 +284,7 @@ def stream_result():
     for record in records:
         record_txt += f"面试官: “{record.question}” 面试者: “{record.answer}” 回答耗时：{record.duration}秒\n"
 
-    prompt = f"基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{record_txt}"
+    prompt = f"面试的历史记录：\n{record_txt}\n\n基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:<sep>"
 
     print('result:', prompt)
 
@@ -296,11 +293,15 @@ def stream_result():
         'Content-Type': 'application/json'
     }
     data = {
-        "model": chat_model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "stream": True
+        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "prompt": prompt,
+        "max_tokens": 256,
+        "temperature": 1,
+        "use_beam_search": False,
+        "top_p": 0,
+        "top_k": 1,
+        "stop": "<eod>",
+        "stream": True  # 启用流式传输
     }
 
     full_response = ""
@@ -371,17 +372,22 @@ def generate_improvement_suggestions(records):
     history_text = "\n".join([f"Q: {rec.question}\nA: {rec.answer}\n" for rec in records])
     
     # 大模型 API 生成建议
-    prompt = f"基于面试的历史记录，请给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{history_text}"
+    prompt = f"面试的历史记录: \n{history_text}\n\n基于面试的历史记录，请给出有建设性的改进建议，分段说明，并将重要部分加粗:<sep>"
     
     headers = {
         'Authorization': f'Bearer {chat_key}',
         'Content-Type': 'application/json'
     }
     data = {
-        "model": chat_model,  # 指定模型版本
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
+        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "prompt": prompt,
+        "max_tokens": 256,
+        "temperature": 1,
+        "use_beam_search": False,
+        "top_p": 0,
+        "top_k": 1,
+        "stop": "<eod>",
+        "stream": True  # 启用流式传输
     }
     
     response = requests.post(chat_url, headers=headers, json=data)
@@ -448,15 +454,3 @@ if __name__ == '__main__':
 
     # 默认
     app.run(debug=True)
-
-    # #https
-    # # 这里设置SSL证书和密钥文件的路径
-    # context = ('/etc/ssl/certificate.crt', '/etc/ssl/private/private.key')
-    # app.run(host='0.0.0.0', port=443, ssl_context=context)
-
-    # context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    # context.load_cert_chain(certfile='ssl/cert.pem', keyfile='ssl/key.pem', password=ssl_password)  # 替换为您的密码
-    # app.run(host='0.0.0.0', port=443, debug=True, ssl_context=context)
-
-    # http
-    # app.run(host='0.0.0.0', port=80, debug=True)
