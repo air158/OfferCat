@@ -122,13 +122,14 @@
                 eventSource.close();
             } else {
                 collectedText += event.data;
-                aiAnswerDiv.innerHTML = marked.parse(collectedText);
-
-                // 使用highlight.js对代码块进行高亮处理
-                document.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
             }
+
+            aiAnswerDiv.innerHTML = marked.parse(collectedText);
+
+            // 使用highlight.js对代码块进行高亮处理
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
         };
 
         eventSource.onerror = function() {

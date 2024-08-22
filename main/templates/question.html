@@ -46,6 +46,7 @@
                 if(event.data == "[DONE]") {
                     document.getElementById('connectionStatus').innerText = '猫猫已思考完毕，请开始面试！';
                     startInterviewBtn.disabled = false;
+                    currentBubble.innerHTML = marked.parse(collectedText);
                 }
                 else {
                     if (currentBubble === null) {

@@ -14,6 +14,10 @@ countdown_time = 20
 ques_len = 4
 
 chat_url = 'http://101.201.82.35:10097/v1/completions'
+
+# chat_model="/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf"
+chat_model="/home/public/add_disk/mengshengwei/llm/models/OfferCat_Yuan2.0-2B"
+
 headers = {
     "Content-Type": "application/json",
 }
@@ -148,7 +152,7 @@ def stream():
              f"\n你是这个 {job_title} 岗位的面试者，请回答 面试官的面试题，需要简洁有条理并且重点信息加粗<sep>" \
 
     data = {
-        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "model": chat_model,
         "prompt": prompt,
         "max_tokens": 256,
         "temperature": 1,
@@ -178,7 +182,7 @@ def stream_questions():
     
     print('prompt', prompt)
     data = {
-        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "model": chat_model,
         "prompt": prompt,
         "max_tokens": 256,
         "temperature": 1,
@@ -241,10 +245,10 @@ def stream_answer():
              f"岗位要求：\n{job_description}\n" \
              f"面试者简历：\n{resume_text}\n" \
              f"面试官的面试题：\n{current_question}\n" \
-             f"\n你是这个 {job_title} 岗位的面试者，请依据 岗位要求 和 面试者简历 回答 面试官的面试题，需要简洁有条理并且重点信息加粗<sep>" \
+             f"\n你是这个 {job_title} 岗位的面试者，请依据 岗位要求 和 面试者简历 回答 面试官的面试题，需要简洁有条理且分段，重点信息加粗<sep>" \
 
     data = {
-        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "model": chat_model,
         "prompt": prompt,
         "max_tokens": 256,
         "temperature": 1,
@@ -288,12 +292,8 @@ def stream_result():
 
     print('result:', prompt)
 
-    headers = {
-        'Authorization': f'Bearer {chat_key}',
-        'Content-Type': 'application/json'
-    }
     data = {
-        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "model": chat_model,
         "prompt": prompt,
         "max_tokens": 256,
         "temperature": 1,
@@ -379,7 +379,7 @@ def generate_improvement_suggestions(records):
         'Content-Type': 'application/json'
     }
     data = {
-        "model": "/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf",
+        "model": chat_model,
         "prompt": prompt,
         "max_tokens": 256,
         "temperature": 1,
@@ -453,4 +453,8 @@ if __name__ == '__main__':
         db.create_all()
 
     # 默认
-    app.run(debug=True)
+    # app.run(debug=True, host='0.0.0.0', port=12345)
+    
+    context = ('/home/public/add_disk/mengshengwei/llm/ssl/ip/certificate.crt', '/home/public/add_disk/mengshengwei/llm/ssl/ip/private.key')
+    # context = ('/home/public/add_disk/mengshengwei/llm/ssl/url/cert.pem', '/home/public/add_disk/mengshengwei/llm/ssl/url/cert.key')
+    app.run(host='0.0.0.0', port=12345, ssl_context=context)
