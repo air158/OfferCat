@@ -213,18 +213,27 @@ body {
     font-size: 20px;
 }
 #layer2 {
-    width: 40vw;
+    width: 45vw;
 }
 #layer3 {
     width: 25vw;
 }
+
 #layer-container {
     display: flex;
+    flex-wrap: wrap; /* Allows items to wrap onto the next line */
     justify-content: center;
-    align-items: flex-start; 
+    align-items: flex-start;
     gap: 5vw; /* Adds space between the buttons */
     width: 100vw;
-    /* height: 60px;  */
+    flex-direction: row; /* Default to horizontal layout */
+}
+
+@media (max-width: 600px) {
+    #layer-container {
+        flex-direction: column; /* Switch to vertical layout on small screens */
+        align-items: center; /* Center items horizontally */
+    }
 }
 
 #buttons-container {
