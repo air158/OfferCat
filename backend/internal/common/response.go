@@ -31,7 +31,7 @@ func ResponseMiddleware() gin.HandlerFunc {
 		}
 		msg := c.Keys["massage"]
 
-		if status == 404 {
+		if status == 404 && msg == nil {
 			msg = "Not Found"
 		}
 

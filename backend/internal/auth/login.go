@@ -42,7 +42,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	lib.Code(c, 200)
-	lib.Msg(c, "登录成功")
-	lib.Data(c, gin.H{"token": token})
+	lib.Ok(c, "登录成功", gin.H{
+		"username": user.Username,
+		"token":    token,
+	})
 }

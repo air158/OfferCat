@@ -17,9 +17,9 @@ func FormatInterviewResult(db *gorm.DB, interviewID uint) (string, error) {
 		return "", err
 	}
 
-	questionId := GetQuestionIdByInterviewId1(interviewID)
+	//questionId := GetQuestionIdByInterviewId1(interviewID)
 	// 查询对应的答案
-	if err := db.Where("question_id = ?", questionId).Find(&answers).Error; err != nil {
+	if err := db.Where("interview_id = ?", interviewID).Find(&answers).Error; err != nil {
 		log.Println("Error fetching answers:", err)
 		return "", err
 	}
@@ -28,8 +28,9 @@ func FormatInterviewResult(db *gorm.DB, interviewID uint) (string, error) {
 	var resultStr string
 	for _, question := range questions {
 		for _, answer := range answers {
-			if question.ID == answer.QuestionID {
+			if question.BranchID == answer.QuestionBranchID {
 				record := fmt.Sprintf("面试官: “%s” 面试者: “%s”\n", question.Content, answer.Content)
+				log.Println(record)
 				resultStr += record
 			}
 		}

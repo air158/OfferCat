@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"net/http"
+	"net/url"
 	"offercat/v0/internal/db"
 	"offercat/v0/internal/lib"
 )
@@ -36,12 +37,19 @@ func GetJobs(c *gin.Context, db *gorm.DB) {
 	lib.Ok(c, "获取岗位信息成功", jobs)
 }
 
-// 根据job_title获取岗位信息
 func GetJobByTitle(c *gin.Context) {
-	var job PresetJob
 	jobTitle := c.Query("job_title")
-	if err := db.DB.Where("job_title = ?", jobTitle).First(&job).Error; err != nil {
-		lib.Err(c, http.StatusInternalServerError, "无法查询到岗位信息", err)
+	// 手动解码，以防万一
+	decodedJobTitle, err := url.QueryUnescape(jobTitle)
+	if err != nil {
+		lib.Err(c, http.StatusBadRequest, "参数解码失败", err)
+		return
+	}
+	// 后续处理逻辑
+	var job PresetJob
+	if err := db.DB.Where("job_title = ?", decodedJobTitle).First(&job).Error; err != nil {
+
+		lib.Err(c, 404, decodedJobTitle+"未找到岗位信息,请检查job_title内容是否符合要求", err)
 		return
 	}
 	lib.Ok(c, "获取岗位信息成功", job)
