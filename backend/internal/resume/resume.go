@@ -9,13 +9,14 @@ import (
 )
 
 type Resume struct {
-	ID         uint             `json:"id" gorm:"primaryKey"`
-	UserID     uint             `json:"user_id"`                                       // 关联的用户ID
-	FilePath   string           `json:"file_path"`                                     // 简历文件的存储路径
-	FileName   string           `json:"file_name"`                                     // 简历文件的原始名称
-	UploadedAt time.Time        `json:"uploaded_at"`                                   // 简历上传时间
-	Status     string           `json:"status"`                                        // 简历状态（如"待审核"，"审核完成"等）
-	Feedback   []ResumeFeedback `json:"feedback,omitempty" gorm:"foreignKey:ResumeID"` // 简历建议列表，设置外键为 ResumeID
+	ID         uint      `json:"id" gorm:"primaryKey"`
+	UserID     uint      `json:"user_id"`              // 关联的用户ID
+	FilePath   string    `json:"file_path"`            // 简历文件的存储路径
+	FileName   string    `json:"file_name"`            // 简历文件的原始名称
+	UploadedAt time.Time `json:"uploaded_at"`          // 简历上传时间
+	Status     string    `json:"status"`               // 简历状态（如"待审核"，"审核完成"等）
+	Content    string    `json:"content,omitempty"`    // 简历内容，可能是解析后的文本内容
+	Suggestion string    `json:"suggestion,omitempty"` // 简历改进建议
 }
 
 type ResumeFeedback struct {

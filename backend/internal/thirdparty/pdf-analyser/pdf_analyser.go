@@ -34,22 +34,26 @@ func GetStringFromPDF(c *gin.Context, filePath string) string {
 	babies := strings.Split(filePath, "/")
 	bucketName := babies[1]
 	objectName := fmt.Sprintf("%s/%s", babies[2], babies[3])
-	filePath = babies[3]
+	filePath = babies[3] // 保存原始文件名
 
+	// 下载文件到 tmp 目录
+	tmpFilePath := fmt.Sprintf("tmp/%s", filePath)
 	err = store.MinioDownloadFile(c, client, bucketName, objectName, filePath)
 	if err != nil {
 		log.Printf("Error downloading file from MinIO: %v", err)
 		return "something wrong"
 	}
 
-	fileInfo, err := os.Stat(filePath)
+	// 检查下载的文件
+	fileInfo, err := os.Stat(tmpFilePath) // 使用下载后的文件路径
 	if err != nil || fileInfo.Size() == 0 {
 		log.Printf("File download failed or file is empty: %v", err)
 		return "something wrong"
 	}
 	time.Sleep(3 * time.Second)
 
-	res := getStringFromPDF("tmp/" + filePath)
+	// 传递正确的路径给 getStringFromPDF
+	res := getStringFromPDF(tmpFilePath)
 	return res
 }
 
@@ -85,8 +89,8 @@ func readPdf(path string) (string, error) {
 	httpClient := &http.Client{
 		Timeout: 10 * time.Minute, // 设置为10分钟，你可以根据需要调整
 	}
-	//client := tika.NewClient(httpClient, "http://117.72.35.68:9998/")
-	client := tika.NewClient(httpClient, "http://116.198.207.159:9998")
+	client := tika.NewClient(httpClient, "http://117.72.35.68:9998/")
+	//client := tika.NewClient(httpClient, "http://116.198.207.159:9998")
 	//content, err := client.Parse(contextTODO(), f)
 	// 创建带超时的context
 	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Minute)
