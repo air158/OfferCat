@@ -50,7 +50,7 @@ func GetStringFromPDF(c *gin.Context, filePath string) string {
 		log.Printf("File download failed or file is empty: %v", err)
 		return "something wrong"
 	}
-	time.Sleep(3 * time.Second)
+	//time.Sleep(3 * time.Second)
 
 	// 传递正确的路径给 getStringFromPDF
 	res := getStringFromPDF(tmpFilePath)

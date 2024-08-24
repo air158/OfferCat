@@ -1,4 +1,4 @@
-package auth
+package jwt
 
 import (
 	"errors"
@@ -19,7 +19,7 @@ type Claims struct {
 // 生成 JWT Token
 func GenerateToken(userID uint, username, role string) (string, error) {
 	now := time.Now()
-	expireTime := now.Add(72 * time.Hour) // Token 有效期 72 小时
+	expireTime := now.Add(24 * 7 * time.Hour) // Token 有效期 一周
 
 	claims := Claims{
 		UserID:   userID,
