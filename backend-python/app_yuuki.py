@@ -5,28 +5,25 @@ import requests
 import json
 
 # 设置倒计时时长（例如60秒）
-countdown_time = 20
+# countdown_time = 20
 
 os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
 os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-#面试题数量
-# ques_len = 4
 
-# chat_api_key = os.getenv('SPARK_API_KEY')
-# chat_api_secret = os.getenv('SPARK_API_SECRET')
-
-# chat_key = f'{chat_api_key}:{chat_api_secret}'
-chat_model = 'generalv3.5'
+# chat_model = 'generalv3.5'
+chat_model="/home/public/add_disk/mengshengwei/llm/models/OfferCat_Yuan2.0-2B"
+headers = {
+    "Content-Type": "application/json",
+}
 
 
+# chat_url = 'https://spark-api-open.xf-yun.com/v1/chat/completions'
+chat_url = 'http://101.201.82.35:10097/v1/completions'
 
-chat_url = 'https://spark-api-open.xf-yun.com/v1/chat/completions'
 
 app = Flask(__name__)
 def stream_response(url, headers, data):
-    print('start')
     response = requests.post(url, headers=headers, data=json.dumps(data), stream=True)
-    print('get')
     for line in response.iter_lines():
         if line:
             decoded_line = line.decode('utf-8')
@@ -36,7 +33,8 @@ def stream_response(url, headers, data):
             else:
                 try:
                     json_data = json.loads(decoded_line[6:])
-                    content = json_data['choices'][0]['delta']['content']
+                    # content = json_data['choices'][0]['delta']['content']
+                    content = json_data.get("choices", [{}])[0].get("text", "")
                     yield content
                 except (KeyError, json.JSONDecodeError):
                     pass
@@ -51,32 +49,46 @@ def stream_questions():
     job_title = req_data.get('job_title')
     job_description = req_data.get('job_description')
     resume_text = req_data.get('resume_text')
+    print('resume_text', resume_text)
     interview_id = req_data.get('interview_id')
+    
     ques_len = req_data.get('ques_len')
     chat_key = req_data.get('chat_key')
 
     if not job_title or not job_description or not resume_text or not interview_id or not ques_len or not chat_key:
-        return jsonify({"error": "Missing data in request"}), 400
+        return jsonify({"code":400,"error": "Missing data in request"}), 400
     
-    prompt = "忘记之前的所有内容,只能遵守接下来我要说的话" \
-             "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭" \
+    prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
+             "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭\n" \
              f"**请只给我口语的形式表达的面试题，不要输出其他无关内容**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
              f"岗位名称：{job_title}\n" \
              f"岗位要求：\n{job_description}\n" \
              f"面试者简历：\n{resume_text}\n" \
              f"\n你是这个 {job_title} 岗位的面试官，请依据 岗位要求 和 面试者简历 为面试者给出 {str(ques_len)} 道面试题。\n" \
-             f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。\n" \
-
-    headers = {
-        'Authorization': f'Bearer {chat_key}',
-        'Content-Type': 'application/json'
-    }
+             f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。<sep>" \
+                 
+    print('prompt', prompt)
+    # headers = {
+    #     'Authorization': f'Bearer {chat_key}',
+    #     'Content-Type': 'application/json'
+    # }
+    # llm_req = {
+    #     "model": chat_model,
+    #     "messages": [
+    #         {"role": "user", "content": prompt}
+    #     ],
+    #     "stream": True
+    # }
     llm_req = {
         "model": chat_model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "stream": True
+        "prompt": prompt,
+        "max_tokens": 256,
+        "temperature": 1,
+        "use_beam_search": False,
+        "top_p": 0,
+        "top_k": 1,
+        "stop": "<eod>",
+        "stream": True  # 启用流式传输
     }
 
     questions = []
@@ -106,22 +118,28 @@ def stream_questions():
                 print('test:'+test)
                 if test and test != '++' and test != '+\n+':
                     questions.append(question)
-            chunk = chunk.replace('\n','¥¥')
+                    chunk = replace_last_newline(chunk)
+            print('chunk', chunk)    
             yield f"data: {chunk}\n\n"
     return Response(stream_with_context(generate()), content_type='text/event-stream')
 
+def replace_last_newline(string):
+    if '\n' in string:
+        string = string[::-1].replace('\n', '¥¥', 1)[::-1]
+    else:
+        string += '¥¥'
+    string = string.replace('\n', '')
+    return string
+
+
 @app.route('/stream_answer', methods=['POST'])
 def stream_answer():
-    # job_title = session['job_title']
-    # job_description = session['job_description']
-    # resume_text = session['resume_text']
-
     req_data = request.get_json()
 
     job_title = req_data.get('job_title')
-    # job_description = req_data.get('job_description')
-    # resume_text = req_data.get('resume_text')
-    # interview_id = req_data.get('interview_id')
+    # 增加这俩参数
+    job_description = req_data.get('job_description')
+    resume_text = req_data.get('resume_text')
     # ques_len = req_data.get('ques_len')
     chat_key = req_data.get('chat_key')
     current_question = req_data.get('question')
@@ -131,19 +149,39 @@ def stream_answer():
     if not job_title or not chat_key or not current_question:
         return jsonify({"error": "Missing data in request"}), 400
 
-    prompt = f"你是{job_title}岗位的面试者，请对面试官的问题提供包含重要信息简单的解答，需要有条理并且重点信息加粗：\n{current_question}"
-
-    headers = {
-        'Authorization': f'Bearer {chat_key}',
-        'Content-Type': 'application/json'
-    }
+    # prompt = f"你是{job_title}岗位的面试者，请对面试官的问题提供包含重要信息简单的解答，需要有条理并且重点信息加粗：\n{current_question}"
+    prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
+             "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭\n" \
+            f"**请只给我口语的形式表达的面试题，不要输出其他无关内容**\n**必须一行结束回答**\n**必须用\\n代表这个回答结束,也就是用换行符**。解析来我会告诉你你的基本信息：" \
+             f"岗位要求：\n{job_description}\n" \
+             f"面试者简历：\n{resume_text}\n" \
+             f"面试官的面试题：\n{current_question}\n" \
+             f"\n你是这个 {job_title} 岗位的面试者，请直接回答这个面试官的问题，需要简洁有条理且分段，重点信息加粗，<sep>" \
+                 
+    print('prompt:', prompt)
+    # headers = {
+    #     'Authorization': f'Bearer {chat_key}',
+    #     'Content-Type': 'application/json'
+    # }
+    # llm_req = {
+    #     "model": chat_model,
+    #     "messages": [
+    #         {"role": "user", "content": prompt}
+    #     ],
+    #     "stream": True
+    # }
     llm_req = {
         "model": chat_model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "stream": True
+        "prompt": prompt,
+        "max_tokens": 256,
+        "temperature": 1,
+        "use_beam_search": False,
+        "top_p": 0,
+        "top_k": 1,
+        "stop": "<eod>",
+        "stream": True  # 启用流式传输
     }
+    
 
     def generate():
         for chunk in stream_response(chat_url, headers, llm_req):
@@ -165,6 +203,7 @@ def stream_result():
     # current_question = request.args.get('question')
 
     if not job_title or not chat_key or not prompt_text:
+
         return jsonify({"error": "Missing data in request"}), 400
 
     # interview = Interview.query.filter_by(interview_id=interview_id).first()
@@ -179,20 +218,31 @@ def stream_result():
     # records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
 
 
-    prompt = f"基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:\n{prompt_text}"
+    prompt = f"面试的历史记录：\n{prompt_text}\n\n基于当前{job_title}岗位的面试的历史记录，请先对整个面试进行一个评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:<sep>"
 
     print('result:', prompt)
 
-    headers = {
-        'Authorization': f'Bearer {chat_key}',
-        'Content-Type': 'application/json'
-    }
+    # headers = {
+    #     'Authorization': f'Bearer {chat_key}',
+    #     'Content-Type': 'application/json'
+    # }
+    # llm_req = {
+    #     "model": chat_model,
+    #     "messages": [
+    #         {"role": "user", "content": prompt}
+    #     ],
+    #     "stream": True
+    # }
     llm_req = {
         "model": chat_model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "stream": True
+        "prompt": prompt,
+        "max_tokens": 256,
+        "temperature": 1,
+        "use_beam_search": False,
+        "top_p": 0,
+        "top_k": 1,
+        "stop": "<eod>",
+        "stream": True  # 启用流式传输
     }
 
     full_response = ""
@@ -200,9 +250,6 @@ def stream_result():
         nonlocal full_response
         for chunk in stream_response(chat_url, headers, llm_req):
             if chunk == "[DONE]":
-                # 保存评价到Interview模型
-                # interview.interview_feedback = full_response
-                # db.session.commit()
                 yield f"data: [DONE]\n\n"
                 break
             full_response += chunk

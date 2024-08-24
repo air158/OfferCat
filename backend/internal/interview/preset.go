@@ -246,6 +246,14 @@ func ResumeSuggestion(c *gin.Context) {
 		lib.Err(c, http.StatusInternalServerError, "调用Spark API失败", err)
 		return
 	}
+	resumeEntity.Content = stringFromPDF
+	resumeEntity.Suggestion = response
+	err = resume.UpdateResumeByID(resumeEntity.ID, resumeEntity)
+	if err != nil {
+		lib.Err(c, http.StatusInternalServerError, "更新简历信息失败", err)
+		return
+	}
+
 	lib.Ok(c, "获取简历建议成功", gin.H{
 		"suggestion": response,
 	})

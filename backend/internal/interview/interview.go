@@ -146,3 +146,16 @@ func GetSimulatedInterview(c *gin.Context) {
 
 	lib.Ok(c, "获取模拟面试信息成功", entity)
 }
+
+func GetInterviewListByUid(c *gin.Context) {
+	var entity []Interview
+	uid := lib.Uid(c)
+	if err := db.DB.Where("user_id = ?", uid).Find(&entity).Error; err != nil {
+		lib.Err(c, http.StatusInternalServerError, "获取模拟面试信息失败", err)
+		return
+	}
+
+	lib.Ok(c, "获取模拟面试信息成功", gin.H{
+		"interviews": entity,
+	})
+}

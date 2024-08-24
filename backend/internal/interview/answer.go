@@ -12,7 +12,7 @@ import (
 
 type Answer struct {
 	ID               uint      `json:"id" gorm:"primaryKey"`
-	QuestionID       uint      `json:"question_id"`
+	InterviewID      uint      `json:"interview_id"`
 	QuestionBranchID uint      `json:"question_branch_id"`
 	UserID           uint      `json:"user_id"`
 	TimeSpent        uint      `json:"time_spent"`
@@ -37,7 +37,7 @@ func CreateOrUpdateAnswer(c *gin.Context) {
 
 	// 在数据库中查找是否已有该 question 和 branch 的答案
 	var existingAnswer Answer
-	if err := db.DB.Where("user_id = ? AND question_id = ? AND question_branch_id = ?", answer.UserID, answer.QuestionID, answer.QuestionBranchID).First(&existingAnswer).Error; err != nil {
+	if err := db.DB.Where("user_id = ? AND interview_id = ? AND question_branch_id = ?", answer.UserID, answer.InterviewID, answer.QuestionBranchID).First(&existingAnswer).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// 如果没有找到记录，则创建新记录
 			answer.CreatedAt = time.Now()
@@ -57,6 +57,7 @@ func CreateOrUpdateAnswer(c *gin.Context) {
 	// 如果找到记录，则更新现有记录
 	existingAnswer.Content = answer.Content
 	existingAnswer.UpdatedAt = time.Now()
+	existingAnswer.TimeSpent = answer.TimeSpent
 
 	if err := db.DB.Save(&existingAnswer).Error; err != nil {
 		lib.Err(c, http.StatusInternalServerError, "更新用户答案失败", err)
