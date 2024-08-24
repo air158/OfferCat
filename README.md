@@ -12,7 +12,7 @@
 这将彻底改变传统的面试流程。
 
 <br>
-本项目使用vllm部署浪潮大模型Yuan2-2B-Mars-hf，构建了1000条Java面经指令微调数据进行LoRA微调并合并权重，基于bge embedding模型的RAG，基于funasr实时语音识别
+本项目使用vllm部署浪潮大模型Yuan2-2B-Mars-hf，使用few-shot进行提示，构建了1000条Java面经指令微调数据进行LoRA微调并合并权重，基于bge embedding模型的RAG，基于funasr实时语音识别
 
 # 安装
 ## clone仓库
