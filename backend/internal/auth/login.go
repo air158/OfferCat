@@ -5,8 +5,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
+	"offercat/v0/internal/auth/jwt"
+	"offercat/v0/internal/auth/model"
 	"offercat/v0/internal/db"
 	"offercat/v0/internal/lib"
+	"time"
 )
 
 func Login(c *gin.Context) {
@@ -19,7 +22,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	var user User
+	var user model.User
 	if err := db.DB.Where("email = ? and valid = ? ", loginVals.Email, true).First(&user).Error; err != nil {
 		lib.Err(c, http.StatusUnauthorized, "用户名或密码错误", err)
 
@@ -36,11 +39,13 @@ func Login(c *gin.Context) {
 	}
 
 	// 生成 JWT Token
-	token, err := GenerateToken(user.ID, user.Username, user.Role)
+	token, err := jwt.GenerateToken(user.ID, user.Username, user.Role)
 	if err != nil {
 		lib.Err(c, http.StatusInternalServerError, "生成token失败", err)
 		return
 	}
+	user.LastLogin = time.Now()
+	db.DB.Save(&user)
 
 	lib.Ok(c, "登录成功", gin.H{
 		"username": user.Username,
