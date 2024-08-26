@@ -176,10 +176,10 @@ def stream_answer():
         "max_tokens": 256,
         "temperature": 1,
         "use_beam_search": False,
-        "top_p": 0,
-        "top_k": 1,
+        "top_p": 0.98,
+        "top_k": 3,
         "stop": "<eod>",
-        "stream": True  # 启用流式传输
+        "stream": True
     }
     
 
@@ -239,10 +239,10 @@ def stream_result():
         "max_tokens": 256,
         "temperature": 1,
         "use_beam_search": False,
-        "top_p": 0,
-        "top_k": 1,
+        "top_p": 0.98,
+        "top_k": 3,
         "stop": "<eod>",
-        "stream": True  # 启用流式传输
+        "stream": True
     }
 
     full_response = ""

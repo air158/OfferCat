@@ -69,7 +69,13 @@ func ProxyLLM(targetHost string, db *gorm.DB) gin.HandlerFunc {
 		err = saveResponseToDatabase(db, task, requestData, c)
 		if err != nil {
 			lib.Err(c, http.StatusInternalServerError, "保存数据到数据库失败", err)
+			return
 		}
+		//lib.Ok(c, "数据收集完成", gin.H{
+		//	"completeData": c.GetString("completeData"),
+		//})
+		// 确保中止处理链
+		//c.Abort()
 	}
 }
 
@@ -131,22 +137,23 @@ func streamResponse(c *gin.Context, body io.Reader) {
 	scanner := bufio.NewScanner(body)
 	var completeDataB strings.Builder
 
-	c.Writer.Header().Set("Content-Type", "text/event-stream")
-	c.Writer.WriteHeader(http.StatusOK)
-	c.Writer.Flush()
+	//c.Writer.Header().Set("Content-Type", "text/event-stream")
+	//c.Writer.WriteHeader(http.StatusOK)
+	//c.Writer.Flush()
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		_, err := c.Writer.Write([]byte(line + "\n"))
-		if err != nil {
-			log.Printf("Failed to write data to client: %v", err)
-			break
-		}
-		c.Writer.Flush()
+		//_, err := c.Writer.Write([]byte(line + "\n"))
+		//if err != nil {
+		//	log.Printf("Failed to write data to client: %v", err)
+		//	break
+		//}
+		//c.Writer.Flush()
 
 		trimmed := strings.TrimPrefix(line, "data:")
 		trimmed = strings.TrimSpace(trimmed)
 		completeDataB.WriteString(trimmed)
+
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -155,6 +162,8 @@ func streamResponse(c *gin.Context, body io.Reader) {
 
 	// 将完整数据保存到数据库
 	completeData := completeDataB.String()
+	// 将所有收集到的数据构造成 JSON 对象
+
 	log.Println("Complete data:", completeData)
 	c.Set("completeData", completeData) // 保存到上下文，供后续使用
 }

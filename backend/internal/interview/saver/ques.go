@@ -43,6 +43,9 @@ func SaveQuestions(db *gorm.DB, requestData map[string]interface{}, completeData
 		preset.QuestionLength = int(requestData["ques_len"].(float64))
 		db.Save(&preset)
 	}
-
+	// 返回成功响应
+	lib.Ok(c, "问题保存成功", gin.H{
+		"completeData": questions,
+	})
 	return nil
 }
