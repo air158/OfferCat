@@ -34,5 +34,8 @@ func SaveLLMAnswer(db *gorm.DB, requestData map[string]interface{}, completeData
 
 	userAnswer.LLMAnswer = completeData
 	userAnswer.UpdatedAt = time.Now()
+	lib.Ok(c, "答案保存成功", gin.H{
+		"answer": completeData,
+	})
 	return db.Save(&userAnswer).Error
 }

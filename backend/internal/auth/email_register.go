@@ -151,7 +151,8 @@ func sendVerificationEmail(userID uint, email, token string) error {
 	}
 	username := newUser.Username
 
-	verificationLink := fmt.Sprintf("http://116.198.207.159:12345/api/verify?token=%s", token)
+	//verificationLink := fmt.Sprintf("http://116.198.207.159:12345/api/verify?token=%s", token)
+	verificationLink := fmt.Sprintf("http://117.72.35.68:3200/user/verify-detail?token=%s", token)
 	//verificationLink := fmt.Sprintf("http://127.0.0.1:12345/api/verify?token=%s", token)
 	subject := "【OfferCat】尊敬的" + username + "，请验证您的邮箱"
 	body := fmt.Sprintf("尊敬的%s:\n您的邮箱被用于在OfferCat上注册了一个新账号，请验证您的邮箱。\n请点击以下链接以继续完成注册:\n %s", username, verificationLink)
