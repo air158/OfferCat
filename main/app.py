@@ -157,8 +157,8 @@ def stream():
         "max_tokens": 256,
         "temperature": 1,
         "use_beam_search": False,
-        "top_p": 0,
-        "top_k": 1,
+        "top_p": 0.98,
+        "top_k": 10,
         "stop": "<eod>",
         "stream": True  # 启用流式传输
     }
@@ -171,14 +171,23 @@ def stream_questions():
     resume_text = session['resume_text']
     interview_id = session['interview_id']
     
+    # spark
+    # prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
+    #          "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭\n" \
+    #          f"**请只给我口语的形式表达的面试题，不要输出其他无关内容**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
+    #          f"岗位名称：{job_title}\n" \
+    #          f"岗位要求：\n{job_description}\n" \
+    #          f"面试者简历：\n{resume_text}\n" \
+    #          f"\n你是这个 {job_title} 岗位的面试官，请依据 岗位要求 和 面试者简历 为面试者给出 {str(ques_len)} 道面试题。\n" \
+    #          f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。<sep>" \
+    
+    #Yuan
     prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
              "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭\n" \
-             f"**请只给我口语的形式表达的面试题，不要输出其他无关内容**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
-             f"岗位名称：{job_title}\n" \
-             f"岗位要求：\n{job_description}\n" \
-             f"面试者简历：\n{resume_text}\n" \
-             f"\n你是这个 {job_title} 岗位的面试官，请依据 岗位要求 和 面试者简历 为面试者给出 {str(ques_len)} 道面试题。\n" \
-             f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。<sep>" \
+             f"**请只给我口语的形式表达的面试题，不要输出任何其他无关内容**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
+             f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。\n" \
+             f"\n你是这个 {job_title} 岗位的面试官，请为面试者给出 {str(ques_len)} 道面试题:<sep>" \
+             
     
     print('prompt', prompt)
     data = {
@@ -187,8 +196,8 @@ def stream_questions():
         "max_tokens": 256,
         "temperature": 1,
         "use_beam_search": False,
-        "top_p": 0,
-        "top_k": 1,
+        "top_p": 0.98,
+        "top_k": 10,
         "stop": "<eod>",
         "stream": True  # 启用流式传输
     }
@@ -241,11 +250,16 @@ def stream_answer():
     current_question = request.args.get('question')
 
     # prompt = f"你是{job_title}岗位的面试者，请对面试官的问题提供包含重要信息简单的解答，需要有条理并且重点信息加粗：\n{current_question}"
-    prompt = f"岗位名称：{job_title}\n" \
-             f"岗位要求：\n{job_description}\n" \
-             f"面试者简历：\n{resume_text}\n" \
-             f"面试官的面试题：\n{current_question}\n" \
-             f"\n你是这个 {job_title} 岗位的面试者，请依据 岗位要求 和 面试者简历 回答 面试官的面试题，需要简洁有条理且分段，重点信息加粗<sep>" \
+    
+    # prompt = f"岗位名称：{job_title}\n" \
+    #          f"岗位要求：\n{job_description}\n" \
+    #          f"面试者简历：\n{resume_text}\n" \
+    #          f"面试官的面试题：\n{current_question}\n" \
+    #          f"\n你是这个 {job_title} 岗位的面试者，请依据 岗位要求 和 面试者简历 回答 面试官的面试题，需要简洁有条理且分段，重点信息加粗<sep>" \
+    
+    # Yuan
+    prompt = f"面试题：\n{current_question}\n" \
+             f"\n你是这个 {job_title} 岗位的面试者，需要回答的简洁有条理且分段，答案中重点信息加粗，请给出面试题的答案:<sep>" \
 
     data = {
         "model": chat_model,
@@ -253,8 +267,8 @@ def stream_answer():
         "max_tokens": 256,
         "temperature": 1,
         "use_beam_search": False,
-        "top_p": 0,
-        "top_k": 1,
+        "top_p": 0.98,
+        "top_k": 10,
         "stop": "<eod>",
         "stream": True  # 启用流式传输
     }
@@ -288,7 +302,7 @@ def stream_result():
     for record in records:
         record_txt += f"面试官: “{record.question}” 面试者: “{record.answer}” 回答耗时：{record.duration}秒\n"
 
-    prompt = f"面试的历史记录：\n{record_txt}\n\n基于当前{job_title}岗位的面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议，分段说明，并将重要部分加粗:<sep>"
+    prompt = f"面试的历史记录：\n{record_txt}\n\n你是当前{job_title}岗位的面试面试官，基于面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议:<sep>"
 
     print('result:', prompt)
 
@@ -298,8 +312,8 @@ def stream_result():
         "max_tokens": 256,
         "temperature": 1,
         "use_beam_search": False,
-        "top_p": 0,
-        "top_k": 1,
+        "top_p": 0.98,
+        "top_k": 10,
         "stop": "<eod>",
         "stream": True  # 启用流式传输
     }
@@ -384,8 +398,8 @@ def generate_improvement_suggestions(records):
         "max_tokens": 256,
         "temperature": 1,
         "use_beam_search": False,
-        "top_p": 0,
-        "top_k": 1,
+        "top_p": 0.98,
+        "top_k": 10,
         "stop": "<eod>",
         "stream": True  # 启用流式传输
     }
