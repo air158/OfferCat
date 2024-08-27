@@ -135,9 +135,17 @@ def stream_response(url, headers, data):
 
 @app.route('/stream', methods=['POST'])
 def stream():
-    job_title = session['job_title']
-    job_description = session['job_description']
-    resume_text = session['resume_text']
+    job_title = 'offercat'
+    job_description = job_title
+    resume_text = job_title
+    interview_id = job_title
+    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
+        # 提取请求数据中的各个字段
+        job_title = session['job_title']
+        job_description = session['job_description']
+        resume_text = session['resume_text']
+        interview_id = session['interview_id']
+
 
     current_question = request.form['user_input']
 
@@ -164,12 +172,76 @@ def stream():
     }
     return Response(stream_with_context(stream_response(chat_url, headers, data)), content_type='text/event-stream')
 
+@app.route('/json_questions', methods=['POST'])
+def json_questions():
+    job_title = 'offercat'
+    job_description = job_title
+    resume_text = job_title
+    interview_id = job_title
+    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
+        # 提取请求数据中的各个字段
+        job_title = session['job_title']
+        job_description = session['job_description']
+        resume_text = session['resume_text']
+        interview_id = session['interview_id']
+
+    # 检查请求数据中的必要字段是否存在
+    if not job_title or not job_description or not resume_text or not interview_id:
+        return jsonify({"code": 400, "error": "Missing data in request"}), 400
+
+    #Yuan
+    prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
+             "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭\n" \
+             f"**请只给我口语的形式表达的面试题，不要输出任何其他无关内容**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
+             f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。\n" \
+             f"\n你是这个 {job_title} 岗位的面试官，请为面试者给出 {str(ques_len)} 道面试题:<sep>" \
+
+    # 设置LLM请求参数
+    llm_req = {
+        "model": chat_model,
+        "prompt": prompt,
+        "max_tokens": 256,
+        "temperature": 1,
+        "use_beam_search": False,
+        "top_p": 0.98,
+        "top_k": 3,
+        "stop": "<eod>",
+        "stream": True
+    }
+
+    # 存储生成的问题
+    questions = []
+    
+    # 使用stream_response函数获取生成的问题
+    buffer = ""
+    for chunk in stream_response(chat_url, headers, llm_req):
+        if chunk == "[DONE]":
+            if buffer.strip():
+                questions.append(buffer.strip())
+            break
+        buffer += chunk
+        while '\n' in buffer:
+            question, buffer = buffer.split('\n', 1)
+            question = question.strip()
+            if question:
+                questions.append(question)
+    print('questions: ', questions)
+    # 返回所有生成的问题作为JSON响应
+    return jsonify({"questions": questions}), 200
+
 @app.route('/stream_questions', methods=['GET','POST'])
 def stream_questions():
-    job_title = session['job_title']
-    job_description = session['job_description']
-    resume_text = session['resume_text']
-    interview_id = session['interview_id']
+    job_title = 'offercat'
+    job_description = job_title
+    resume_text = job_title
+    interview_id = job_title
+    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
+        # 提取请求数据中的各个字段
+        job_title = session['job_title']
+        job_description = session['job_description']
+        resume_text = session['resume_text']
+        interview_id = session['interview_id']
+
     
     # spark
     # prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
@@ -243,9 +315,17 @@ def replace_last_newline(string):
 
 @app.route('/stream_answer', methods=['GET'])
 def stream_answer():
-    job_title = session['job_title']
-    job_description = session['job_description']
-    resume_text = session['resume_text']
+    job_title = 'offercat'
+    job_description = job_title
+    resume_text = job_title
+    interview_id = job_title
+    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
+        # 提取请求数据中的各个字段
+        job_title = session['job_title']
+        job_description = session['job_description']
+        resume_text = session['resume_text']
+        interview_id = session['interview_id']
+
 
     current_question = request.args.get('question')
 
@@ -285,7 +365,17 @@ def stream_answer():
 
 @app.route('/stream_result', methods=['GET', 'POST'])
 def stream_result():
-    job_title = session['job_title']
+    job_title = 'offercat'
+    job_description = job_title
+    resume_text = job_title
+    interview_id = job_title
+    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
+        # 提取请求数据中的各个字段
+        job_title = session['job_title']
+        job_description = session['job_description']
+        resume_text = session['resume_text']
+        interview_id = session['interview_id']
+
     interview_id = session.get('interview_id')
 
     interview = Interview.query.filter_by(interview_id=interview_id).first()
@@ -349,9 +439,30 @@ def save_record(job_title, question, answer, duration, interview_id):
 # 面试页面
 @app.route('/interview', methods=['GET', 'POST'])
 def interview():
-    interview_id = session['interview_id']  # 获取当前面试的ID
-    print('interview_id_i', interview_id)
-    questions = get_questions_from_database(interview_id)
+    job_title = 'offercat'
+    job_description = job_title
+    resume_text = job_title
+    interview_id = job_title
+    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
+        # 提取请求数据中的各个字段
+        job_title = session['job_title']
+        job_description = session['job_description']
+        resume_text = session['resume_text']
+        interview_id = session['interview_id']
+
+        print('interview_id_i', interview_id)
+        questions = get_questions_from_database(interview_id)
+    else:
+        session['job_title'] = job_title
+        session['job_description'] = job_description
+        session['idx'] = 0
+        session['resume_text'] = resume_text
+        session['interview_id'] = str(uuid.uuid4())  # 生成一个新的面试ID
+        questions = ['说一下你的前端开发经验', 'js怎么实现类', '用css写一个红色方框']
+
+    print('questions ', questions)
+        
+    print('session[idx] ', session['idx'])
 
     if request.method == 'POST':
         answer = request.form['answer']
@@ -372,7 +483,17 @@ def interview():
 # 结果页面
 @app.route('/result', methods=['GET'])
 def result():
-    interview_id = session.get('interview_id')
+    job_title = 'offercat'
+    job_description = job_title
+    resume_text = job_title
+    interview_id = job_title
+    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
+        # 提取请求数据中的各个字段
+        job_title = session['job_title']
+        job_description = session['job_description']
+        resume_text = session['resume_text']
+        interview_id = session['interview_id']
+
     records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
     # 获取或创建 Interview 对象
     interview = Interview.query.filter_by(interview_id=interview_id).first()
