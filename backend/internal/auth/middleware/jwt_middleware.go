@@ -1,8 +1,9 @@
-package auth
+package middleware
 
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"offercat/v0/internal/auth/jwt"
 	"offercat/v0/internal/lib"
 )
 
@@ -16,7 +17,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		claims, err := ParseToken(token)
+		claims, err := jwt.ParseToken(token)
 		if err != nil {
 			lib.Err(c, http.StatusUnauthorized, "无效的或过期的token", err)
 			c.Abort()

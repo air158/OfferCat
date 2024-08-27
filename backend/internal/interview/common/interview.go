@@ -1,4 +1,4 @@
-package interview
+package common
 
 import (
 	"errors"
@@ -25,6 +25,8 @@ type Interview struct {
 	FeedbackID           uint      `json:"feedback_id,omitempty"`   // 反馈ID
 	Dialog               string    `json:"dialog_id,omitempty"`     // 对话
 	TimeLimitPerQuestion int       `json:"time_limit_per_question"` // 每个问题的时间限制
+	Closed               bool      `json:"closed" `                 // 是否关闭
+	StartTime            time.Time `json:"start_time,omitempty"`    // 开始时间
 }
 
 type RegisterRequest struct {
@@ -121,6 +123,8 @@ func UpsertPresetAndCreateInterview(c *gin.Context) {
 		InterviewStyle:       registerRequest.InterviewStyle,
 		Type:                 registerRequest.Type,
 		TimeLimitPerQuestion: registerRequest.TimeLimitPerQuestion,
+		Closed:               false,
+		StartTime:            time.Now(),
 	}
 	// 将模拟面试信息保存到数据库
 	if err := db.DB.Create(&interview).Error; err != nil {

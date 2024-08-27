@@ -3,6 +3,7 @@ module offercat/v0
 go 1.20
 
 require (
+	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
@@ -15,7 +16,6 @@ require (
 )
 
 require (
-	github.com/PuerkitoBio/goquery v1.9.2 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/bytedance/sonic v1.12.1 // indirect
 	github.com/bytedance/sonic/loader v0.2.0 // indirect

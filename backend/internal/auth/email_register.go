@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"net/smtp"
+	"offercat/v0/internal/auth/model"
 	"offercat/v0/internal/db"
 	"offercat/v0/internal/lib"
 	"regexp"
@@ -59,13 +60,13 @@ func EmailRegister(c *gin.Context) {
 	}
 
 	// 检查邮箱是否已被注册
-	var existingUser User
+	var existingUser model.User
 	result := db.DB.Where("email = ?", registerInput.Email).First(&existingUser)
 	if result.RowsAffected > 0 {
 		lib.Registered(c, "邮箱已被注册")
 		return
 	}
-	var newUser User
+	var newUser model.User
 	// 密码哈希处理，cost是哈希计算的成本，越高越安全，但是也越耗时，默认为10
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerInput.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -73,11 +74,13 @@ func EmailRegister(c *gin.Context) {
 		return
 	}
 	newUser.PasswordHash = string(hashedPassword)
-	newUser.Role = "user"
+	newUser.Role = "user" // 默认为普通用户，如果要管理员直接在数据库修改
 	newUser.Username = registerInput.Username
 	newUser.Email = registerInput.Email
 	newUser.DateOfBirth = time.Now()
 	newUser.LastLogin = time.Now()
+	newUser.VipExpireAt = time.Now() // 不赠送VIP，所以注册时间就是过期时间
+	newUser.InterviewPoint = 2 * 60  // 注册送2*60个面试点（分钟），也就是2小时
 
 	// 验证之后才可以true
 	newUser.Valid = false
@@ -141,14 +144,15 @@ func sendVerificationEmail(userID uint, email, token string) error {
 	senderEmail := "1195396626@qq.com"
 	senderPassword := "izsyvpvqegeyjaia"
 
-	var newUser User
+	var newUser model.User
 	err2 := db.DB.Where("id = ?", userID).First(&newUser).Error
 	if err2 != nil {
 		return fmt.Errorf("failed to get user: %w", err2)
 	}
 	username := newUser.Username
 
-	verificationLink := fmt.Sprintf("http://116.198.207.159:12345/api/verify?token=%s", token)
+	//verificationLink := fmt.Sprintf("http://116.198.207.159:12345/api/verify?token=%s", token)
+	verificationLink := fmt.Sprintf("http://117.72.35.68:3200/user/verify-detail?token=%s", token)
 	//verificationLink := fmt.Sprintf("http://127.0.0.1:12345/api/verify?token=%s", token)
 	subject := "【OfferCat】尊敬的" + username + "，请验证您的邮箱"
 	body := fmt.Sprintf("尊敬的%s:\n您的邮箱被用于在OfferCat上注册了一个新账号，请验证您的邮箱。\n请点击以下链接以继续完成注册:\n %s", username, verificationLink)
