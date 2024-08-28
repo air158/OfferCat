@@ -29,3 +29,14 @@ class Interview(db.Model):
     interview_id = db.Column(db.String(100), unique=True, nullable=False)
     job_title = db.Column(db.String(128), nullable=False)
     interview_feedback = db.Column(db.Text, nullable=True)  # 存储面试的评价
+
+class RunnigInterview(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    interview_id = db.Column(db.Integer, nullable=False)
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String(128), nullable=False)
+    user_id = db.Column(db.Integer, nullable=False)
+    interview_points = db.Column(db.Integer, nullable=False)

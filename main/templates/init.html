@@ -14,6 +14,16 @@
         <button class="test-button" onclick="submitForm('guide')">面试提词器</button>
         <button class="test-button" onclick="window.location.href='/history'">面试记录</button>
     </div>
+    <div id="user-info" style="position: absolute; top: 10px; right: 10px; text-align: right;">
+        <div id="buttons-container">
+            <a href="{{ url_for('login') }}" class="test-button">登录</a>
+            <a href="{{ url_for('recharge') }}" class="test-button">兑换码</a>
+        </div>
+        {% if 'username' in session %}
+            <span>欢迎, {{ session['username'] }}</span><br>
+            <span>剩余时长: {% if left_point is not none %}{{ left_point }}{% else %}0{% endif %} 分钟</span><br>
+        {% endif %}
+    </div>
     <form action="/" method="POST" id="interviewForm">
         <input type="hidden" id="action_type" name="action_type" value="simulate">
 

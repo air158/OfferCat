@@ -51,6 +51,13 @@
     </script>
 </head>
 <body onload="typeSentence(0)">
+    <div id="user-info" style="position: absolute; top: 10px; right: 10px; text-align: right;">
+        <div id="buttons-container">
+            <a href="{{ url_for('result') }}" class="test-button">结束面试</a>
+        </div>
+    </div>
+
+
     <h1>模拟面试</h1>
     面试用时<div id="info_div">录音关闭</div>
     <div id="layer-container">
