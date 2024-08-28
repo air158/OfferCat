@@ -13,6 +13,12 @@
     <script src="{{ url_for('static', filename='js/ui/toggletag.js') }}"></script>
     
     <h1>面试结果</h1>
+    <div id="user-info" style="position: absolute; top: 10px; right: 10px; text-align: right;">
+        {% if 'username' in session %}
+            <span>欢迎, {{ session['username'] }}</span><br>
+            <span>剩余时长: {{ session['left_point'] }} 分钟</span><br>
+        {% endif %}
+    </div>
     <div id="buttons-container">
         <button class="test-button" onclick="window.location.href='/go_back_init'">返回简历填写</button>
         <button class="test-button" onclick="window.location.href='/history'">面试记录</button>

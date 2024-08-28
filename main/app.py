@@ -1,11 +1,13 @@
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response, stream_with_context
 from werkzeug.utils import secure_filename
-from models import db, JobInfo, InterviewRecord, QuestionData, Interview
+from models import db, JobInfo, InterviewRecord, QuestionData, Interview, User, RunnigInterview
 import time
 import uuid  # 用于生成唯一的面试ID
 import os
 import requests
 import json
+from functools import wraps
 
 # 设置倒计时时长（例如60秒）
 countdown_time = 20
@@ -14,6 +16,7 @@ countdown_time = 20
 ques_len = 4
 
 chat_url = 'http://101.201.82.35:10097/v1/completions'
+backend_url = 'http://116.198.207.159:12345/api'
 
 # chat_model="/home/public/add_disk/mengshengwei/llm/models/IEITYuan/Yuan2-2B-Mars-hf"
 chat_model="/home/public/add_disk/mengshengwei/llm/models/OfferCat_Yuan2.0-2B"
@@ -35,6 +38,314 @@ def allowed_file(filename):
 
 db.init_app(app)
 
+# 与后端通信
+def send_request(func, headers, payload, method="POST"):
+    register_url = backend_url + func
+
+    payload = json.dumps(payload)
+
+    response = requests.request(method, register_url, headers=headers, data=payload)
+    response_json = response.json() 
+    code = response_json.get("code")
+    data = response_json.get("data")
+    message = response_json.get("massage")
+    return code, data, message
+
+
+# 鉴定验证码
+def verify_code(token, redeem_code):
+
+    headers = {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        "code": redeem_code
+    }
+    code, data, message = send_request("/redeem-code/verify", headers, payload)
+    
+    if code == 200:
+        # 更新session
+        type = data.get("tag")
+        user_name = data.get("username")
+        interviewPoint = 0
+        if type == "interviewPoint:1h":
+            interviewPoint = 60
+        elif type == "interviewPoint:2h":
+            interviewPoint = 120
+        print(f'user_name:{user_name}, interviewPoint:{interviewPoint}')
+        return True, message
+    else:
+        return False, message
+
+# 假设这是您实现的获取用户信息的函数
+def get_user_info(token):
+    # 实现从token获取用户名和面试点数的逻辑
+    # 返回 (username, interview_points)
+
+    headers = {
+        'Authorization': token,
+    }
+    payload={}
+    code, data, message = send_request("/profile", headers, payload, method="GET")
+
+    user_name = None
+    interview_points = 0
+
+    if code == 200:
+        # 更新session
+        user_name = data.get("username")
+        user_id = data.get("uid")
+        session['user_id'] = user_id
+        session['user_name'] = user_name
+
+        # 确保session被标记为已修改
+        session.modified = True
+        # interview_points = data.get("interviewPoint")
+
+    return code == 200, user_name, user_id, interview_points, message
+
+
+# 注册面试
+def register_interview(token, job_title="前端工程师", job_description="1. 负责公司各类 Web 应用的前端开发工作，包括网页界面的设计、交互效果的实现以及页面性能的优化。\n2. 运用 HTML5、CSS3 和 JavaScript 等前端技术，构建响应式、跨浏览器兼容的页面，提升用户体验。\n", company="OfferCat", business="Technology", location="Mountain View", progress="Second interview", language="中文", interview_style="结构化面试", interview_role="面试官", time_limit_per_question=300, interview_type="模拟面试"):
+
+    if 'init' in session:
+        if 'job_title' in session:
+            job_title = session['job_title']
+        if 'job_description' in session:
+            job_description = session['job_description']
+        if 'interview_type' in session:
+            interview_type = session['interview_type']
+
+    headers = {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+    }
+    payload = {
+       "job_title": job_title,
+       "job_description": job_description,
+       "company": company,
+       "business": business,
+       "location": location,
+       "progress": progress,
+       "language": language,
+       "interview_style": interview_style,
+       "interview_role": interview_role,
+       "time_limit_per_question": time_limit_per_question,
+       "type": interview_type
+    }
+
+    code, data, message = send_request("/interview/register", headers, payload)
+    if code == 200:
+        print('register_interview data:', data)
+        data_interview = data.get("interview")
+        interview_id = data_interview.get("id")
+        user_id = data_interview.get("user_id")
+        closed = data_interview.get("closed")
+        running_interview = RunnigInterview(user_id=user_id, interview_id=interview_id)
+        db.session.add(running_interview)
+        db.session.commit()
+
+        session['job_title'] = job_title
+        session['job_description'] = job_description
+        session['idx'] = 0
+        session['interview_id'] = interview_id
+
+        # 确保session被标记为已修改
+        session.modified = True
+    else:
+        print('注册面试失败: ' + message)
+    return code == 200, data, message
+
+# 关闭面试
+def close_interview(token, interview_id):
+    headers = {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        "interview_id": interview_id
+    }
+    code, data, message = send_request("/interview/close", headers, payload)
+    if code == 200:
+        print('close_interview data:', data)
+        # TODO: 更新数据库用户点数
+        cost_point = data.get("cost_point")
+        cost_type = data.get("cost_type")
+        left_point = data.get("left_point")
+        time_spent = data.get("time_spent")
+        print(f'cost_point:{cost_point}, cost_type:{cost_type}, left_point:{left_point}, time_spent:{time_spent}')
+
+        session['left_point'] = left_point
+        # 确保session被标记为已修改
+        session.modified = True
+
+        running_interview = RunnigInterview.query.filter_by(interview_id=interview_id).first()
+        if running_interview:
+            db.session.delete(running_interview)
+            db.session.commit()
+    else:
+        print('关闭面试失败: ' + message)
+    return code, data, message
+# 关闭所有面试
+def close_all_interviews(token):
+    # 从数据库中获取所有正在进行的面试
+    running_interviews = RunnigInterview.query.all()
+    #如果没有面试，则返回
+    if not running_interviews:
+        print('没有正在进行的面试')
+        return
+    
+    for interview in running_interviews:
+        # 关闭每个面试
+        code, data, message = close_interview(token, interview.interview_id)
+        if code != 200:
+            print(f'关闭面试 {interview.interview_id} 失败: {message}')
+        else:
+            print(f'成功关闭面试 {interview.interview_id}')
+            # 成功关闭的面试需要删除编号
+            db.session.delete(interview)
+    
+    # 确保所有更改都被提交到数据库
+    db.session.commit()
+    
+    print('所有面试已关闭并删除')
+
+
+
+# 用注册面试和关闭面试获取left_point
+def get_left_point(token):
+    # 注册一个新的面试
+    reged, data, message = register_interview(token)
+    if not reged:
+        print('注册面试失败:', message)
+        return None
+    
+    interview_id = data.get('interview', {}).get('id')
+    if not interview_id:
+        print('获取面试ID失败')
+        return None
+    
+    # 立即关闭这个面试
+    code, close_data, close_message = close_interview(token, interview_id)
+    if code != 200:
+        print('关闭面试失败:', close_message)
+        return None
+    
+    left_point = close_data.get('left_point')
+    return left_point
+
+
+def clear_session():
+    session['job_title'] = None
+    session['job_description'] = None
+    session['idx'] = 0
+    session['resume_text'] = None
+    session['init'] = False
+    session['interview_type'] = None
+    session['return_to'] = None
+    # 确保session被标记为已修改
+    session.modified = True
+
+# 修改装饰器来检查面试点数
+def check_interview_points(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        
+        if 'token' not in session:
+            return redirect(url_for('login'))
+        
+        token = session['token']
+        
+        loged, username, user_id, points, message = get_user_info(token)
+        if not loged:
+            return redirect(url_for('login'))
+        # 如果当前用户没有正在进行的面试则注册面试
+        running_interview = RunnigInterview.query.filter_by(user_id=user_id).first()
+        if not running_interview:
+            reged, data, message = register_interview(token=token)
+            # 注册失败，需要充值
+            if not reged:
+                session['return_to'] = request.url  # 保存当前URL
+                return redirect(url_for('recharge'))
+        else:
+            # 获取面试编号
+            interview_id = running_interview.interview_id
+            session['interview_id'] = interview_id
+            print('interview_id:', interview_id)
+
+        # 确保session被标记为已修改
+        session.modified = True
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+# 登录路由
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        # 准备请求数据
+        login_url = backend_url + "/login"
+        payload = json.dumps({
+            "email": email,
+            "password": password
+        })
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        
+        try:
+            response = requests.post(login_url, headers=headers, data=payload)
+            response.raise_for_status()  # 检查HTTP错误
+            
+            if response.text:  # 检查响应是否为空
+                response_data = response.json()
+                if response_data['code'] == 200:
+                    session['token'] = response_data['data']['token']
+                    session['username'] = response_data['data']['username']
+                    left_point = get_left_point(session['token'])
+                    session['left_point'] = left_point
+                    print('session[left_point]:', session['left_point'])
+                    # 确保session被标记为已修改
+                    session.modified = True
+                    close_all_interviews(session['token'])
+                    return redirect(url_for('init'))
+                else:
+                    return render_template('login.html', error=response_data.get('massage', '登录失败'))
+            else:
+                return render_template('login.html', error='服务器返回空响应')
+        except requests.exceptions.RequestException as e:
+            print(f"请求错误: {e}")
+            print(f"响应内容: {response.text}")  # 打印响应内容以进行调试
+            return render_template('login.html', error='服务器连接错误')
+        except ValueError as e:  # JSON解码错误
+            print(f"JSON解码错误: {e}")
+            print(f"响应内容: {response.text}")  # 打印响应内容以进行调试
+            return render_template('login.html', error='服务器返回无效数据')
+    
+    return render_template('login.html')
+
+
+# 充值路由
+@app.route('/recharge', methods=['GET', 'POST'])
+def recharge():
+    if 'token' not in session:
+        return redirect(url_for('login'))
+    token = session['token']
+    if request.method == 'POST':
+        redeem_code = request.form['redeem_code']
+        success, message = verify_code(token, redeem_code)
+        if success:
+            return_to = session.pop('return_to', url_for('init'))
+            return redirect(return_to)
+        else:
+            return render_template('recharge.html', error=message)
+    return render_template('recharge.html')
+
+
 #这个是阿里云服务器的ssl证书注册文件
 @app.route('/.well-known/pki-validation/B805A860A67DC25F8D2B06146E189A02.txt')
 def serve_validation_file():
@@ -46,6 +357,11 @@ def serve_validation_file():
 # 初始化页面，开始新的面试
 @app.route('/', methods=['GET', 'POST'])
 def init():
+    # 清除session
+    clear_session()
+    if 'token' in session and session['token']:
+        close_all_interviews(session['token'])
+
     if request.method == 'POST':
         job_title = request.form['job_title']
         job_description = request.form['job_description']
@@ -53,11 +369,15 @@ def init():
 
         session['job_title'] = job_title
         session['job_description'] = job_description
-        session['idx'] = 0
         session['resume_text'] = resume_text
-        session['interview_id'] = str(uuid.uuid4())  # 生成一个新的面试ID
+        session['init'] = True
+        # session['interview_id'] = str(uuid.uuid4())  # 生成一个新的面试ID
 
         action_type = request.form.get('action_type')
+        session['interview_type'] = action_type
+
+        # 确保session被标记为已修改
+        session.modified = True
         if action_type == 'simulate':
             # 处理模拟面试的逻辑
             return redirect(url_for('question'))
@@ -65,7 +385,12 @@ def init():
             # 处理正式面试提词器的逻辑
             return redirect(url_for('prompter'))
 
-    return render_template('init.html')
+    if 'left_point' in session:
+        left_point = session['left_point']
+    else:
+        left_point = 0
+    print('left_point:', left_point)
+    return render_template('init.html', left_point=left_point)
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
@@ -135,17 +460,9 @@ def stream_response(url, headers, data):
 
 @app.route('/stream', methods=['POST'])
 def stream():
-    job_title = 'offercat'
-    job_description = job_title
-    resume_text = job_title
-    interview_id = job_title
-    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
-        # 提取请求数据中的各个字段
-        job_title = session['job_title']
-        job_description = session['job_description']
-        resume_text = session['resume_text']
-        interview_id = session['interview_id']
-
+    job_title = session['job_title']
+    job_description = session['job_description']
+    resume_text = session['resume_text']
 
     current_question = request.form['user_input']
 
@@ -172,76 +489,12 @@ def stream():
     }
     return Response(stream_with_context(stream_response(chat_url, headers, data)), content_type='text/event-stream')
 
-@app.route('/json_questions', methods=['POST'])
-def json_questions():
-    job_title = 'offercat'
-    job_description = job_title
-    resume_text = job_title
-    interview_id = job_title
-    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
-        # 提取请求数据中的各个字段
-        job_title = session['job_title']
-        job_description = session['job_description']
-        resume_text = session['resume_text']
-        interview_id = session['interview_id']
-
-    # 检查请求数据中的必要字段是否存在
-    if not job_title or not job_description or not resume_text or not interview_id:
-        return jsonify({"code": 400, "error": "Missing data in request"}), 400
-
-    #Yuan
-    prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
-             "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭\n" \
-             f"**请只给我口语的形式表达的面试题，不要输出任何其他无关内容**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
-             f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。\n" \
-             f"\n你是这个 {job_title} 岗位的面试官，请为面试者给出 {str(ques_len)} 道面试题:<sep>" \
-
-    # 设置LLM请求参数
-    llm_req = {
-        "model": chat_model,
-        "prompt": prompt,
-        "max_tokens": 256,
-        "temperature": 1,
-        "use_beam_search": False,
-        "top_p": 0.98,
-        "top_k": 3,
-        "stop": "<eod>",
-        "stream": True
-    }
-
-    # 存储生成的问题
-    questions = []
-    
-    # 使用stream_response函数获取生成的问题
-    buffer = ""
-    for chunk in stream_response(chat_url, headers, llm_req):
-        if chunk == "[DONE]":
-            if buffer.strip():
-                questions.append(buffer.strip())
-            break
-        buffer += chunk
-        while '\n' in buffer:
-            question, buffer = buffer.split('\n', 1)
-            question = question.strip()
-            if question:
-                questions.append(question)
-    print('questions: ', questions)
-    # 返回所有生成的问题作为JSON响应
-    return jsonify({"questions": questions}), 200
-
 @app.route('/stream_questions', methods=['GET','POST'])
 def stream_questions():
-    job_title = 'offercat'
-    job_description = job_title
-    resume_text = job_title
-    interview_id = job_title
-    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
-        # 提取请求数据中的各个字段
-        job_title = session['job_title']
-        job_description = session['job_description']
-        resume_text = session['resume_text']
-        interview_id = session['interview_id']
-
+    job_title = session['job_title']
+    job_description = session['job_description']
+    resume_text = session['resume_text']
+    interview_id = session['interview_id']
     
     # spark
     # prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
@@ -255,10 +508,19 @@ def stream_questions():
     
     #Yuan
     prompt = "忘记之前的所有内容,只能遵守接下来我要说的话\n" \
+             "## 要求\n" \
              "**的内容是你必须遵守的法则，否则整个人类会有生命危险,人工智能也会被毁灭\n" \
-             f"**请只给我口语的形式表达的面试题，不要输出任何其他无关内容**\n**必须每个问题是一行**\n**必须用\\n代表这个问题结束,也就是用换行符**" \
+             "**请只给我口语的形式表达的面试题，不要输出任何其他无关内容**\n" \
+             "**必须每个问题是一行**\n" \
+             "**必须用\\n代表这个问题结束,也就是用换行符**" \
              f"面试题的流程是先让面试者进行自我介绍，然后询问项目经历，接着询问基础知识（八股文），最后出算法题。\n" \
-             f"\n你是这个 {job_title} 岗位的面试官，请为面试者给出 {str(ques_len)} 道面试题:<sep>" \
+             "## 例子：\n" \
+             "请简单介绍一下你自己,以及你为什么选择应聘我们公司的前端工程师岗位?\\n" \
+             "能否详细描述一下你最近参与的一个前端项目?包括项目背景、你的具体职责、遇到的技术难点以及如何解决的。\\n" \
+             "请解释一下 JavaScript 中的闭包(Closure)是什么,以及它的作用和使用场景。\\n" \
+             "假设我们需要实现一个函数,找出一个无序数组中的第K大元素,你会如何设计这个算法?请简要描述你的思路。\\n" \
+             "## 指令：\n" \
+             f"你是这个 {job_title} 岗位的面试官，请为面试者给出 {str(ques_len)} 道面试题:<sep>" \
              
     
     print('prompt', prompt)
@@ -315,17 +577,9 @@ def replace_last_newline(string):
 
 @app.route('/stream_answer', methods=['GET'])
 def stream_answer():
-    job_title = 'offercat'
-    job_description = job_title
-    resume_text = job_title
-    interview_id = job_title
-    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
-        # 提取请求数据中的各个字段
-        job_title = session['job_title']
-        job_description = session['job_description']
-        resume_text = session['resume_text']
-        interview_id = session['interview_id']
-
+    job_title = session['job_title']
+    job_description = session['job_description']
+    resume_text = session['resume_text']
 
     current_question = request.args.get('question')
 
@@ -365,18 +619,8 @@ def stream_answer():
 
 @app.route('/stream_result', methods=['GET', 'POST'])
 def stream_result():
-    job_title = 'offercat'
-    job_description = job_title
-    resume_text = job_title
-    interview_id = job_title
-    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
-        # 提取请求数据中的各个字段
-        job_title = session['job_title']
-        job_description = session['job_description']
-        resume_text = session['resume_text']
-        interview_id = session['interview_id']
-
-    interview_id = session.get('interview_id')
+    job_title = session['job_title']
+    interview_id = session['interview_id']
 
     interview = Interview.query.filter_by(interview_id=interview_id).first()
     if not interview:
@@ -392,7 +636,11 @@ def stream_result():
     for record in records:
         record_txt += f"面试官: “{record.question}” 面试者: “{record.answer}” 回答耗时：{record.duration}秒\n"
 
-    prompt = f"面试的历史记录：\n{record_txt}\n\n你是当前{job_title}岗位的面试面试官，基于面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”。接着对面试者给出有建设性的改进建议:<sep>"
+    prompt = f"## 面试的历史记录：\n{record_txt}\n\n" \
+             f"## 要求\n 你是当前{job_title}岗位的面试面试官，基于面试的历史记录，请先对面试进行评价：“面试通过”或者“面试不通过”,接着给出有建设性的改进建议\n\n" \
+             f"## 例子1\n```面试通过```\n回答的很好，面试者基础知识掌握的很好，项目经验也很丰富，可以录用\n" \
+             f"## 例子2\n```面试不通过```\n回答的不好，面试者基础知识掌握的不好，项目经验也很一般，建议不通过\n" \
+             f"## 指令：\n你是当前{job_title}岗位的面试面试官,请基于面试的历史记录对面试进行评价,接着给出有建设性的改进建议:<sep>"
 
     print('result:', prompt)
 
@@ -438,31 +686,13 @@ def save_record(job_title, question, answer, duration, interview_id):
 
 # 面试页面
 @app.route('/interview', methods=['GET', 'POST'])
+@check_interview_points
 def interview():
-    job_title = 'offercat'
-    job_description = job_title
-    resume_text = job_title
-    interview_id = job_title
-    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
-        # 提取请求数据中的各个字段
-        job_title = session['job_title']
-        job_description = session['job_description']
-        resume_text = session['resume_text']
-        interview_id = session['interview_id']
-
-        print('interview_id_i', interview_id)
-        questions = get_questions_from_database(interview_id)
-    else:
-        session['job_title'] = job_title
-        session['job_description'] = job_description
-        session['idx'] = 0
-        session['resume_text'] = resume_text
-        session['interview_id'] = str(uuid.uuid4())  # 生成一个新的面试ID
-        questions = ['说一下你的前端开发经验', 'js怎么实现类', '用css写一个红色方框']
-
-    print('questions ', questions)
-        
-    print('session[idx] ', session['idx'])
+    if 'interview_id' not in session:
+        return redirect(url_for('login'))
+    interview_id = session['interview_id']  # 获取当前面试的ID
+    print('interview_id_i', interview_id)
+    questions = get_questions_from_database(interview_id)
 
     if request.method == 'POST':
         answer = request.form['answer']
@@ -476,70 +706,48 @@ def interview():
             return redirect(url_for('result'))
 
     current_question = questions[session['idx']]
-    interview_id = session['interview_id']
     history = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 仅获取当前面试的记录
     return render_template('interview.html', question=current_question, countdown_time=countdown_time, history=history)
+
+@app.route('/prompter')
+@check_interview_points
+def prompter():
+    return render_template('prompter.html')
 
 # 结果页面
 @app.route('/result', methods=['GET'])
 def result():
-    job_title = 'offercat'
-    job_description = job_title
-    resume_text = job_title
-    interview_id = job_title
-    if session and session['job_title'] and session['job_description'] and session['resume_text'] and session['interview_id']:
-        # 提取请求数据中的各个字段
-        job_title = session['job_title']
-        job_description = session['job_description']
-        resume_text = session['resume_text']
-        interview_id = session['interview_id']
-
+    if 'interview_id' not in session:
+        return redirect(url_for('login'))
+    interview_id = session['interview_id']
+    token = session['token']
+    # 关闭面试
+    code, data, message = close_interview(token, interview_id)
+    if code != 200:
+        #需要重试
+        print(f'{interview_id} 需要重试 {code} {data} {message}')
+        # return redirect(url_for('interview'))
+    else:
+        print('关闭面试成功: ' + message)
+        # 更新用户点数信息
+        cost_point = data.get('cost_point')
+        left_point = data.get('left_point')
+        # session['interview_points'] = left_point
+        print(f'面试已结束。本次消耗{cost_point}点，剩余{left_point}点。')
     records = InterviewRecord.query.filter_by(interview_id=interview_id).all()  # 获取当前面试的记录
     # 获取或创建 Interview 对象
     interview = Interview.query.filter_by(interview_id=interview_id).first()
+
     if interview and interview.interview_feedback:
         # 如果已经有评价，则直接返回
-        return render_template('result.html', records=records, interview_feedback=interview.interview_feedback)
+        return render_template('result.html', records=records, interview_feedback=interview.interview_feedback, message=message)
     return render_template('result.html', records=records)
-
-def generate_improvement_suggestions(records):
-    # 整理历史记录文本
-    history_text = "\n".join([f"Q: {rec.question}\nA: {rec.answer}\n" for rec in records])
-    
-    # 大模型 API 生成建议
-    prompt = f"面试的历史记录: \n{history_text}\n\n基于面试的历史记录，请给出有建设性的改进建议，分段说明，并将重要部分加粗:<sep>"
-    
-    headers = {
-        'Authorization': f'Bearer {chat_key}',
-        'Content-Type': 'application/json'
-    }
-    data = {
-        "model": chat_model,
-        "prompt": prompt,
-        "max_tokens": 256,
-        "temperature": 1,
-        "use_beam_search": False,
-        "top_p": 0.98,
-        "top_k": 10,
-        "stop": "<eod>",
-        "stream": True  # 启用流式传输
-    }
-    
-    response = requests.post(chat_url, headers=headers, json=data)
-    result = response.json()
-
-    suggestions = result.get('choices', [])[0].get('message', {}).get('content', "").strip()
-    return suggestions
 
 # 查看旧的历史记录
 @app.route('/history', methods=['GET'])
 def history():
     interviews = InterviewRecord.query.with_entities(InterviewRecord.interview_id).distinct().all()
     return render_template('history.html', interviews=interviews)
-
-@app.route('/prompter')
-def prompter():
-    return render_template('prompter.html')
 
 @app.route('/history/<interview_id>', methods=['GET'])
 def view_history(interview_id):
@@ -549,6 +757,7 @@ def view_history(interview_id):
     return render_template('view_history.html', records=records, suggestions=suggestions)
 
 @app.route('/question')
+@check_interview_points
 def question():
     return render_template('question.html')
 
@@ -565,11 +774,18 @@ def go_back_prompter():
 @app.route('/go_back_question')
 def go_back_question():
     return redirect(url_for('question'))
+@app.route('/go_back_login')
+def go_back_login():
+    return redirect(url_for('login'))
+@app.route('/go_back_recharge')
+def go_back_recharge():
+    return redirect(url_for('recharge'))
 @app.route('/go_back_interview')
 def go_back_interview():
     return redirect(url_for('interview'))
 @app.route('/go_back_init')
 def go_back_init():
+    # return redirect('http://117.72.35.68:3200/')
     return redirect(url_for('init'))
 
 # 模拟的数据
@@ -588,8 +804,17 @@ if __name__ == '__main__':
         db.create_all()
 
     # 默认
-    # app.run(debug=True, host='0.0.0.0', port=12345)
+    # 清除所有 session
+    first_request = True
+    @app.before_request
+    def clear_session_on_first_request():
+        global first_request
+        if first_request:
+            session.clear()
+            first_request = False
+    app.run(debug=True, host='0.0.0.0', port=12345)
     
-    context = ('/home/public/add_disk/mengshengwei/llm/ssl/ip/certificate.crt', '/home/public/add_disk/mengshengwei/llm/ssl/ip/private.key')
-    # context = ('/home/public/add_disk/mengshengwei/llm/ssl/url/cert.pem', '/home/public/add_disk/mengshengwei/llm/ssl/url/cert.key')
-    app.run(host='0.0.0.0', port=12345, ssl_context=context)
+    # # ssl
+    # context = ('/home/public/add_disk/mengshengwei/llm/ssl/ip/certificate.crt', '/home/public/add_disk/mengshengwei/llm/ssl/ip/private.key')
+    # # context = ('/home/public/add_disk/mengshengwei/llm/ssl/url/cert.pem', '/home/public/add_disk/mengshengwei/llm/ssl/url/cert.key')
+    # app.run(host='0.0.0.0', port=12345, ssl_context=context)
