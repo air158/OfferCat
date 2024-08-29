@@ -247,10 +247,31 @@ def clear_session():
     # 确保session被标记为已修改
     session.modified = True
 
+def update_session_with_token(token):
+    if token:
+        # 如果有 token，更新 session
+        session['token'] = token
+        # 获取并更新 left_point
+        left_point = get_left_point(token)
+        session['left_point'] = left_point
+        print('Updated session[left_point]:', session['left_point'])
+        
+        # 获取用户信息并更新 session
+        loged, username, user_id, points, message = get_user_info(token)
+        if loged:
+            session['username'] = username
+            session['user_id'] = user_id
+        
+        # 确保 session 被标记为已修改
+        session.modified = True
+
 # 修改装饰器来检查面试点数
 def check_interview_points(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+
+        token = request.args.get('question')
+        update_session_with_token(token)
         
         if 'token' not in session:
             return redirect(url_for('login'))
@@ -461,8 +482,8 @@ def stream_response(url, headers, data):
 @app.route('/stream', methods=['POST'])
 def stream():
     job_title = session['job_title']
-    job_description = session['job_description']
-    resume_text = session['resume_text']
+    # job_description = session['job_description']
+    # resume_text = session['resume_text']
 
     current_question = request.form['user_input']
 
@@ -492,8 +513,8 @@ def stream():
 @app.route('/stream_questions', methods=['GET','POST'])
 def stream_questions():
     job_title = session['job_title']
-    job_description = session['job_description']
-    resume_text = session['resume_text']
+    # job_description = session['job_description']
+    # resume_text = session['resume_text']
     interview_id = session['interview_id']
     
     # spark
@@ -578,8 +599,8 @@ def replace_last_newline(string):
 @app.route('/stream_answer', methods=['GET'])
 def stream_answer():
     job_title = session['job_title']
-    job_description = session['job_description']
-    resume_text = session['resume_text']
+    # job_description = session['job_description']
+    # resume_text = session['resume_text']
 
     current_question = request.args.get('question')
 
