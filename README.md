@@ -1,4 +1,9 @@
 # OfferCat
+我们从161支队伍中脱颖而出，获得了DataWhale AI夏令营唯一的 **一等奖&卓越作品奖**，由浪潮信息和ModelScope魔搭社区支持
+![OfferCat](./media/offercat.jpg)
+
+
+
 背八股和刷算法题是一个费时费力而且很痛苦的事，这是每个找实习或找工作的计算机专业学生必须要经历的事。
 <br>
 但是大模型压缩了这些知识，我们可以用大模型作为面试官模拟面试，大模型可以针对面试表现给用户提供改进建议，并且在面试的时候使用大模型回答的问题作为题词器，则能消除背八股和刷算法题这个痛苦的流程。
@@ -13,6 +18,9 @@
 
 <br>
 本项目使用vllm部署浪潮大模型Yuan2-2B-Mars-hf，使用few-shot进行提示，构建了1000条Java面经指令微调数据进行LoRA微调并合并权重，基于bge embedding模型的RAG，基于funasr实时语音识别
+
+# Demo视频
+<video src="./media/offercat.mp4" controls></video>
 
 # 安装
 ## clone仓库
