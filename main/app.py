@@ -833,9 +833,4 @@ if __name__ == '__main__':
         if first_request:
             session.clear()
             first_request = False
-    # app.run(debug=True, host='0.0.0.0', port=12345)
-    
-    # ssl
-    context = ('/home/public/add_disk/mengshengwei/llm/ssl/ip/certificate.crt', '/home/public/add_disk/mengshengwei/llm/ssl/ip/private.key')
-    # context = ('/home/public/add_disk/mengshengwei/llm/ssl/url/cert.pem', '/home/public/add_disk/mengshengwei/llm/ssl/url/cert.key')
-    app.run(host='0.0.0.0', port=12345, ssl_context=context)
+    app.run(debug=True, host='0.0.0.0', port=12345)
